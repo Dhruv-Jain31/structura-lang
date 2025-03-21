@@ -111,7 +111,7 @@ class Parser {
 // Example test
 const lexer = new Lexer(`
     abs(a: number): number;
-    print("Hello, Structura!"): void;
+    print(msg: string): void;
     push(arr, 10): number;
     pop(arr): any;
 `);
