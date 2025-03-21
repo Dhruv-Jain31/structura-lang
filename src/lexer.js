@@ -3,8 +3,9 @@ class Lexer {
       this.code = code;
       this.tokens = [];
       this.position = 0;
+      this.line = 0;
     }
-
+  
     tokenPatterns = [
       { type: "KEYWORD", regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range)\b/ },
       { type: "TYPE", regex: /\b(number|string|boolean|void|any|any\[\])\b/ },
@@ -15,26 +16,34 @@ class Lexer {
       { type: "OPERATOR", regex: /[+\-*/=]/ },
       { type: "WHITESPACE", regex: /\s+/, ignore: true },
     ];
-
+  
     tokenize() {
       while (this.position < this.code.length) {
         let match = false;
-
+  
         for (let { type, regex, ignore } of this.tokenPatterns) {
           const result = this.code.slice(this.position).match(regex);
           if (result && result.index === 0) {
-            if (!ignore) {
-              const value = result[0].trim();
-              this.tokens.push({ type, value });
+            const value = result[0];
+  
+            // Always update line number even for ignored tokens
+            if (value.includes("\n")) {
+              this.line += value.split("\n").length - 1;
             }
-            this.position += result[0].length;
+  
+            // If token is not ignored, push it with the current line number
+            if (!ignore) {
+              this.tokens.push({ type, value: value.trim(), line: this.line });
+            }
+  
+            this.position += value.length;
             match = true;
             break;
           }
         }
-
+  
         if (!match) {
-          throw new Error(`Unexpected character at position ${this.position}: '${this.code[this.position]}'`);
+          throw new Error(`Unexpected character at position ${this.position}: '${this.code[this.position]}' (line ${this.line})`);
         }
       }
   
@@ -51,18 +60,18 @@ class Lexer {
           i + 1 < this.tokens.length &&
           this.tokens[i + 1].type === "TYPE"
         ) {
-          // Merge into a RETURN_TYPE token whose value is just the type.
-          processedTokens.push({ type: "RETURN_TYPE", value: this.tokens[i + 1].value });
+          // Merge ":" and TYPE into a RETURN_TYPE token using the TYPE token's line number.
+          processedTokens.push({ type: "RETURN_TYPE", value: this.tokens[i + 1].value, line: this.tokens[i + 1].line });
           i++; // Skip the TYPE token
         } else {
           processedTokens.push(token);
         }
       }
-
-      processedTokens.push({ type: "EOF", value: null });
+      processedTokens.push({ type: "EOF", value: null, line: this.line });
       this.tokens = processedTokens;
       return this.tokens;
     }
   }
-
+  
   module.exports = Lexer;
+  

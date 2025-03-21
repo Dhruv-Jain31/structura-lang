@@ -7,7 +7,7 @@ class Parser {
   }
 
   peek() {
-    return this.tokens[this.position] || { type: "EOF", value: null };
+    return this.tokens[this.position] || { type: "EOF", value: null, line: null };
   }
 
   consume(expectedType, expectedValue = null) {
@@ -20,25 +20,23 @@ class Parser {
       return token;
     }
     throw new Error(
-      `Expected ${expectedType}${expectedValue ? " with value " + expectedValue : ""} but found ${token.type} (${token.value})`
+      `Expected ${expectedType}${expectedValue ? " with value " + expectedValue : ""} but found ${token.type} (${token.value}) at line ${token.line}`
     );
   }
 
   parseFunction() {
-    // Consume function name (e.g., abs, print, push, pop)
-    const funcName = this.consume("KEYWORD").value;
+    // Capture line number from the function name token
+    const funcNameToken = this.consume("KEYWORD");
+    const funcName = funcNameToken.value;
+    const funcLine = funcNameToken.line;
 
-    // Consume '(' then parse arguments then consume ')'
     this.consume("SYMBOL", "(");
     const args = this.parseArguments();
     this.consume("SYMBOL", ")");
 
-    // Enforce required return type (as a RETURN_TYPE token)
-    if (this.peek().type === "RETURN_TYPE") {
-      var returnType = this.consume("RETURN_TYPE").value;
-    } else {
-      throw new Error(`Missing return type in function '${funcName}'`);
-    }
+    // Expect a return type as a RETURN_TYPE token
+    let returnTypeToken = this.consume("RETURN_TYPE");
+    const returnType = returnTypeToken.value;
 
     // Consume trailing semicolon if present
     if (this.peek().value === ";") {
@@ -50,6 +48,7 @@ class Parser {
       name: funcName,
       arguments: args,
       returnType,
+      line: funcLine // Propagate the line number
     };
   }
 
@@ -66,16 +65,16 @@ class Parser {
   }
 
   parseArgument() {
-    // If we see an IDENTIFIER followed by a colon, it's a parameter declaration.
     if (
       this.peek().type === "IDENTIFIER" &&
       this.tokens[this.position + 1] &&
       this.tokens[this.position + 1].value === ":"
     ) {
-      const paramName = this.consume("IDENTIFIER").value;
+      const paramNameToken = this.consume("IDENTIFIER");
+      const paramName = paramNameToken.value;
       this.consume("SYMBOL", ":");
       const paramType = this.consume("TYPE").value;
-      return { type: "Parameter", name: paramName, paramType };
+      return { type: "Parameter", name: paramName, paramType, line: paramNameToken.line };
     } else {
       return this.parseExpression();
     }
@@ -84,15 +83,15 @@ class Parser {
   parseExpression() {
     const token = this.peek();
     if (token.type === "STRING_LITERAL") {
-      return { type: "StringLiteral", value: this.consume("STRING_LITERAL").value };
+      return { type: "StringLiteral", value: this.consume("STRING_LITERAL").value, line: token.line };
     }
     if (token.type === "NUMBER_LITERAL") {
-      return { type: "NumberLiteral", value: this.consume("NUMBER_LITERAL").value };
+      return { type: "NumberLiteral", value: this.consume("NUMBER_LITERAL").value, line: token.line };
     }
     if (token.type === "IDENTIFIER") {
-      return { type: "Identifier", name: this.consume("IDENTIFIER").value };
+      return { type: "Identifier", name: this.consume("IDENTIFIER").value, line: token.line };
     }
-    throw new Error(`Unexpected token in expression: ${token.type} (${token.value})`);
+    throw new Error(`Unexpected token in expression: ${token.type} (${token.value}) at line ${token.line}`);
   }
 
   parse() {
@@ -107,20 +106,5 @@ class Parser {
     return ast;
   }
 }
-
-// Example test
-const lexer = new Lexer(`
-    abs(a: number): number;
-    print(msg: string): void;
-    push(arr, 10): number;
-    pop(arr): any;
-`);
-
-const tokens = lexer.tokenize();
-console.log("Tokens:", tokens);
-
-const parser = new Parser(tokens);
-const ast = parser.parse();
-console.log("AST:", JSON.stringify(ast, null, 2));
 
 module.exports = Parser;
