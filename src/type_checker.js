@@ -3,30 +3,50 @@ class TypeChecker {
   constructor(ast) {
     this.ast = ast;
     this.typeAliases = {}; // Symbol table for type aliases.
+    // Predefined function signatures for built‑in functions.
+    // These functions are strict and enforced by the table.
     this.functionSignatures = {
-      // Built-in functions (strict)
-      abs: { parameters: [{ kind: "primitive", name: "number" }], returnType: { kind: "primitive", name: "number" } },
+      abs: { 
+        parameters: [{ kind: "primitive", name: "number" }],
+        returnType: { kind: "primitive", name: "number" }
+      },
       print: { variadic: true },
-      push: { parameters: [{ kind: "primitive", name: "any" }, { kind: "primitive", name: "number" }], returnType: { kind: "primitive", name: "number" } },
-      pop: { parameters: [{ kind: "primitive", name: "any" }], returnType: { kind: "primitive", name: "any" } },
-      // Built-in sample functions with strict types:
-      sumNumbers: { parameters: [{ kind: "array", elementType: { kind: "primitive", name: "number" } }], returnType: { kind: "primitive", name: "number" } },
-      concatStrings: { parameters: [{ kind: "array", elementType: { kind: "primitive", name: "string" } }], returnType: { kind: "primitive", name: "string" } },
+      push: { 
+        parameters: [{ kind: "primitive", name: "any" }, { kind: "primitive", name: "number" }],
+        returnType: { kind: "primitive", name: "number" }
+      },
+      pop: { 
+        parameters: [{ kind: "primitive", name: "any" }],
+        returnType: { kind: "primitive", name: "any" }
+      },
+      sumNumbers: { 
+        parameters: [{ kind: "array", elementType: { kind: "primitive", name: "number" } }],
+        returnType: { kind: "primitive", name: "number" }
+      },
+      concatStrings: { 
+        parameters: [{ kind: "array", elementType: { kind: "primitive", name: "string" } }],
+        returnType: { kind: "primitive", name: "string" }
+      },
       processMixed: {
         parameters: [{
-          kind: "union", types: [
+          kind: "union",
+          types: [
             { kind: "primitive", name: "string" },
             { kind: "array", elementType: { kind: "primitive", name: "number" } }
           ]
         }],
-        returnType: { kind: "union", types: [
-          { kind: "primitive", name: "string" },
-          { kind: "primitive", name: "number" }
-        ]}
+        returnType: { 
+          kind: "union",
+          types: [
+            { kind: "primitive", name: "string" },
+            { kind: "primitive", name: "number" }
+          ]
+        }
       }
     };
   }
 
+  // Resolve a type alias to its underlying type.
   resolveType(type) {
     if (type.kind === "alias") {
       const aliasName = type.name;
@@ -43,6 +63,8 @@ class TypeChecker {
     return type;
   }
 
+  // For built-in print: derive allowed types from the declared return type.
+  // If the return type is "void", then no checking is enforced.
   getAllowedTypesForPrint(declaredReturnType) {
     const resolved = this.resolveType(declaredReturnType);
     if (resolved.kind === "primitive" && resolved.name === "void") {
@@ -54,7 +76,8 @@ class TypeChecker {
     return [resolved];
   }
 
-  getArgType(arg) {
+  // getArgType now accepts a context, which maps identifiers to their types.
+  getArgType(arg, context = {}) {
     if (arg.type === "Parameter") {
       return this.resolveType(arg.paramType);
     } else if (arg.type === "NumberLiteral") {
@@ -62,11 +85,33 @@ class TypeChecker {
     } else if (arg.type === "StringLiteral") {
       return { kind: "primitive", name: "string" };
     } else if (arg.type === "Identifier") {
+      // Look up the identifier in the current context.
+      if (context[arg.name]) {
+        return context[arg.name];
+      }
+      // Fallback: assume 'any'
       return { kind: "primitive", name: "any" };
+    } else if (arg.type === "BinaryExpression") {
+      // Evaluate the binary expression.
+      const leftType = this.getArgType(arg.left, context);
+      const rightType = this.getArgType(arg.right, context);
+      // For operator "+", if both sides are numbers, result is number.
+      // If both are strings, result is string.
+      if (arg.operator === "+") {
+        if (leftType.name === "number" && rightType.name === "number") {
+          return { kind: "primitive", name: "number" };
+        }
+        if (leftType.name === "string" && rightType.name === "string") {
+          return { kind: "primitive", name: "string" };
+        }
+        throw new Error(`Type mismatch in binary expression: cannot add ${leftType.name} and ${rightType.name}.`);
+      }
+      throw new Error(`Operator '${arg.operator}' not supported in type inference.`);
     }
     throw new Error(`Unknown argument type: ${arg.type}`);
   }
 
+  // Compare two structured types for equality.
   typeEquals(typeA, typeB) {
     typeA = this.resolveType(typeA);
     typeB = this.resolveType(typeB);
@@ -80,12 +125,15 @@ class TypeChecker {
     return false;
   }
 
+  // Check all AST nodes.
   check() {
+    // Process type aliases first.
     for (const node of this.ast) {
       if (node.type === "TypeAlias") {
         this.typeAliases[node.alias] = node.typeAnnotation;
       }
     }
+    // Then check functions.
     for (const node of this.ast) {
       if (node.type === "FunctionDeclaration") {
         this.checkFunction(node);
@@ -93,10 +141,9 @@ class TypeChecker {
     }
   }
 
-  // Check function declarations.
   checkFunction(funcNode) {
     const funcName = funcNode.name;
-    // Built-in functions are checked against the table.
+    // If the function is built-in (has a signature in our table), enforce it.
     if (this.functionSignatures.hasOwnProperty(funcName)) {
       const expected = this.functionSignatures[funcName];
       if (funcName === "print") {
@@ -118,21 +165,26 @@ class TypeChecker {
           throw new Error(`Function '${funcName}' expects ${expected.parameters.length} parameter(s) but got ${funcNode.arguments.length}.`);
         }
       }
-      // For built-in functions, check the return type.
       if (funcName !== "print" && !this.typeEquals(expected.returnType, funcNode.returnType)) {
         throw new Error(`Function '${funcName}' should return '${expected.returnType.name}' but declared return type is '${funcNode.returnType.kind === "primitive" ? funcNode.returnType.name : JSON.stringify(funcNode.returnType)}'.`);
       }
     } else {
-      // For user-defined functions, we check the body.
-      // Here we assume that the function body must have at least one return statement.
+      // For user-defined functions, we need to check the body.
       if (!funcNode.body) {
         throw new Error(`User-defined function '${funcName}' must have a body.`);
       }
+      // Build a context from function parameters.
+      const context = {};
+      funcNode.arguments.forEach(param => {
+        if (param.type === "Parameter") {
+          context[param.name] = this.resolveType(param.paramType);
+        }
+      });
+      // For simplicity, assume the first return statement is the function's return.
       let inferredReturnType = null;
-      // For simplicity, assume there's only one return statement.
       for (const stmt of funcNode.body) {
         if (stmt.type === "ReturnStatement") {
-          inferredReturnType = this.getArgType(stmt.expression);
+          inferredReturnType = this.getArgType(stmt.expression, context);
           break;
         }
       }

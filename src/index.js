@@ -22,20 +22,20 @@ const sourceCode = `
     concatStrings(arr: StringArr): string;
     processMixed(arr: MixedArr): string|number;
 
-    // User-defined function (correct):
+    /* User-defined function (correct):
     myFunc(a: number): number {
         return a + 1;
-    }
+    }*/
 
-    // User-defined function (incorrect, return type mismatch):
-    // myFuncError(a: number): string {
-    //     return a + 1;
-    // }
+    /* User-defined function (incorrect, return type mismatch):
+     myFuncError(a: number): string {
+         return a + 1;
+    }*/
 
-    // User-defined function (union return type, correct if it returns number):
-    myFuncUnion(a: number): number|string {
-        return a + 1;
-    }
+    // User-defined function (union return type, correct if returning number):
+    //myFuncUnion(a: number): number|string {
+    //    return a + 1;
+    //}
 `;
 
 // Tokenize

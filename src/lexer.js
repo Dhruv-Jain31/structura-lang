@@ -21,19 +21,39 @@ class Lexer {
       type: "TYPE", 
       regex: /(?:number|string|boolean|void|any)(?:\[\])*(?:\|(?:number|string|boolean|void|any)(?:\[\])*)*/
     },
-    { type: "IDENTIFIER", regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/ },
-    { type: "NUMBER_LITERAL", regex: /\b\d+(\.\d+)?\b/ },
+    { 
+      type: "IDENTIFIER", 
+      regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/ 
+    },
+    { 
+      type: "NUMBER_LITERAL", 
+      regex: /\b\d+(\.\d+)?\b/ 
+    },
     { 
       // Combined regex for double or single quoted strings.
       type: "STRING_LITERAL", 
       regex: /(?:"([^"]*)"|'([^']*)')/ 
     },
-    { type: "SYMBOL", regex: /[():,;=]/ },
+    { 
+      // Updated SYMBOL pattern to include curly braces.
+      type: "SYMBOL", 
+      regex: /[(){}:,;=]/
+    },
     // Multi-character operators
-    { type: "OPERATOR", regex: /&&|\|\|/ },
+    { 
+      type: "OPERATOR", 
+      regex: /&&|\|\|/ 
+    },
     // Single-character operators (includes | if it appears outside a type context)
-    { type: "OPERATOR", regex: /[+\-*/<>!|]/ },
-    { type: "WHITESPACE", regex: /\s+/, ignore: true },
+    { 
+      type: "OPERATOR", 
+      regex: /[+\-*/<>!|]/ 
+    },
+    { 
+      type: "WHITESPACE", 
+      regex: /\s+/, 
+      ignore: true 
+    },
   ];
 
   tokenize() {
@@ -45,7 +65,7 @@ class Lexer {
         if (result && result.index === 0) {
           const value = result[0];
 
-          // Always update line count even for ignored tokens.
+          // Always update the line counter, even for ignored tokens.
           if (value.includes("\n")) {
             this.line += value.split("\n").length - 1;
           }
