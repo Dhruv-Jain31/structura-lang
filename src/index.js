@@ -3,12 +3,22 @@ const Parser = require('./parser.js');
 const TypeChecker = require('./type_checker.js');
 const IRGenerator = require('./ir_generator.js');
 
-// Sample Structura source code
+// Sample Structura source code with type aliases and functions using them.
 const sourceCode = `
     abs(a: number): number;
-    print("Hi there",42): void;
+    print("Hello", "World"): string;
     push(arr, 10): number;
     pop(arr): any;
+
+    // Type alias declarations:
+    NumberArr = number[];
+    StringArr = string[];
+    MixedArr = string|number[];
+
+    //Functions using type aliases:
+    sumNumbers(arr: NumberArr): number;
+    concatStrings(arr: StringArr): string;
+    mixValues(arr: MixedArr): void;
 `;
 
 // Tokenize
@@ -21,7 +31,7 @@ const parser = new Parser(tokens);
 const ast = parser.parse();
 console.log("AST:", JSON.stringify(ast, null, 2));
 
-// Type Check (if you have already integrated this)
+// Type Check
 const typeChecker = new TypeChecker(ast);
 try {
   typeChecker.check();
