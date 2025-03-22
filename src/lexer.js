@@ -1,3 +1,4 @@
+// lexer.js
 class Lexer {
   constructor(code) {
     this.code = code;
@@ -8,20 +9,25 @@ class Lexer {
 
   // Updated token patterns:
   tokenPatterns = [
+    // Comments (ignored)
+    { type: "COMMENT", regex: /\/\/[^\n]*/, ignore: true },           // single-line comments
+    { type: "COMMENT", regex: /\/\*[\s\S]*?\*\//, ignore: true },        // multi-line comments
     { 
       type: "KEYWORD", 
-      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range)\b/ 
+      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return)\b/ 
     },
     { 
-      // Updated TYPE regex: This pattern now matches basic types,
-      // optional array suffixes (e.g., []), and union types using the pipe (|) operator.
-      // Note: We removed the trailing \b to ensure that characters like "[" are included.
+      // TYPE regex supports basic types, optional array brackets, and unions.
       type: "TYPE", 
-      regex: /(?:number|string|boolean|void|any)(?:\[\])?(?:\|(?:number|string|boolean|void|any)(?:\[\])?)*/
+      regex: /(?:number|string|boolean|void|any)(?:\[\])*(?:\|(?:number|string|boolean|void|any)(?:\[\])*)*/
     },
     { type: "IDENTIFIER", regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/ },
     { type: "NUMBER_LITERAL", regex: /\b\d+(\.\d+)?\b/ },
-    { type: "STRING_LITERAL", regex: /"([^"]*)"/ },
+    { 
+      // Combined regex for double or single quoted strings.
+      type: "STRING_LITERAL", 
+      regex: /(?:"([^"]*)"|'([^']*)')/ 
+    },
     { type: "SYMBOL", regex: /[():,;=]/ },
     // Multi-character operators
     { type: "OPERATOR", regex: /&&|\|\|/ },
@@ -39,7 +45,7 @@ class Lexer {
         if (result && result.index === 0) {
           const value = result[0];
 
-          // Always update the line counter, even for ignored tokens.
+          // Always update line count even for ignored tokens.
           if (value.includes("\n")) {
             this.line += value.split("\n").length - 1;
           }
@@ -60,7 +66,7 @@ class Lexer {
       }
     }
 
-    // Post-process tokens to merge ":" and following TYPE into a RETURN_TYPE token.
+    // Merge ":" and following TYPE into a RETURN_TYPE token.
     const processedTokens = [];
     for (let i = 0; i < this.tokens.length; i++) {
       const token = this.tokens[i];

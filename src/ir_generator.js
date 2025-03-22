@@ -5,7 +5,6 @@ class IRGenerator {
     const ir = [];
     for (const node of ast) {
       if (node.type === "FunctionDeclaration") {
-        // Create an IR instruction for a function declaration
         const funcIR = {
           op: "function_decl",
           name: node.name,
@@ -13,7 +12,6 @@ class IRGenerator {
             if (arg.type === "Parameter") {
               return { name: arg.name, type: arg.paramType };
             } else {
-              // For expressions passed as arguments, generate IR for the expression
               return IRGenerator.generateExpressionIR(arg);
             }
           }),
@@ -22,11 +20,10 @@ class IRGenerator {
         };
         ir.push(funcIR);
       } else if (node.type === "TypeAlias") {
-        // Create an IR instruction for a type alias declaration
         const aliasIR = {
           op: "type_alias",
           alias: node.alias,
-          typeAnnotation: node.typeAnnotation, // Structured type object
+          typeAnnotation: node.typeAnnotation,
           line: node.line || null
         };
         ir.push(aliasIR);
@@ -37,14 +34,15 @@ class IRGenerator {
     return ir;
   }
 
-  // Helper: generate IR for simple expressions (literals, identifiers)
+  // Generate IR for simple expressions.
   static generateExpressionIR(expr) {
     switch (expr.type) {
       case "NumberLiteral":
         return { op: "literal", value: Number(expr.value), type: "number" };
       case "StringLiteral":
-        // Remove the surrounding quotes for the IR
-        return { op: "literal", value: expr.value.replace(/"/g, ""), type: "string" };
+        // Remove surrounding quotes. If our regex returns something like '"text"' or "'text'", remove both.
+        const val = expr.value.replace(/^['"]|['"]$/g, "");
+        return { op: "literal", value: val, type: "string" };
       case "Identifier":
         return { op: "variable", name: expr.name, type: "any" };
       default:

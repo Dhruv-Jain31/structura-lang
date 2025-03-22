@@ -1,12 +1,14 @@
+// index.js
 const Lexer = require('./lexer.js');
 const Parser = require('./parser.js');
 const TypeChecker = require('./type_checker.js');
 const IRGenerator = require('./ir_generator.js');
 
-// Sample Structura source code with type aliases and functions using them.
 const sourceCode = `
+    // Built-in functions (strict):
     abs(a: number): number;
     print("Hello", "World"): string;
+    print(42, 52): number;
     push(arr, 10): number;
     pop(arr): any;
 
@@ -15,10 +17,25 @@ const sourceCode = `
     StringArr = string[];
     MixedArr = string|number[];
 
-    //Functions using type aliases:
+    // Built-in sample functions with strict types:
     sumNumbers(arr: NumberArr): number;
     concatStrings(arr: StringArr): string;
-    mixValues(arr: MixedArr): void;
+    processMixed(arr: MixedArr): string|number;
+
+    // User-defined function (correct):
+    myFunc(a: number): number {
+        return a + 1;
+    }
+
+    // User-defined function (incorrect, return type mismatch):
+    // myFuncError(a: number): string {
+    //     return a + 1;
+    // }
+
+    // User-defined function (union return type, correct if it returns number):
+    myFuncUnion(a: number): number|string {
+        return a + 1;
+    }
 `;
 
 // Tokenize
