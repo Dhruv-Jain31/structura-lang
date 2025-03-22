@@ -31,14 +31,13 @@ class Parser {
     const funcLine = funcNameToken.line;
 
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments();
+    const args = this.parseArguments(); // Use parseArguments which calls parseArgument()
     this.consume("SYMBOL", ")");
 
-    // Expect a return type as a RETURN_TYPE token
+    // Consume return type as a RETURN_TYPE token
     let returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = returnTypeToken.value;
 
-    // Consume trailing semicolon if present
     if (this.peek().value === ";") {
       this.consume("SYMBOL", ";");
     }
@@ -48,13 +47,14 @@ class Parser {
       name: funcName,
       arguments: args,
       returnType,
-      line: funcLine // Propagate the line number
+      line: funcLine
     };
   }
 
+  // Updated: Use parseArgument() to handle parameter declarations
   parseArguments() {
     const args = [];
-    if (this.peek().value === ")") return args; // no arguments
+    if (this.peek().value === ")") return args; // No arguments
 
     args.push(this.parseArgument());
     while (this.peek().value === ",") {
@@ -64,7 +64,10 @@ class Parser {
     return args;
   }
 
+  // Parses either a parameter declaration (IDENTIFIER ":" TYPE)
+  // or, if not a parameter, falls back to parsing an expression.
   parseArgument() {
+    // Check if we have a parameter declaration
     if (
       this.peek().type === "IDENTIFIER" &&
       this.tokens[this.position + 1] &&

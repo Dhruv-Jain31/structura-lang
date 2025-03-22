@@ -6,7 +6,7 @@ const IRGenerator = require('./ir_generator.js');
 // Sample Structura source code
 const sourceCode = `
     abs(a: number): number;
-    print(msg: string): void;
+    print("Hi there",42): void;
     push(arr, 10): number;
     pop(arr): any;
 `;
