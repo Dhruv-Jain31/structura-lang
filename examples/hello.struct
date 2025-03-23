@@ -1,0 +1,23 @@
+// hello.struct
+
+// Built-in function declarations
+abs(a: number): number;
+print("Hello, Structura!"): string;
+
+// Type alias declarations
+NumberArr = number[];
+StringArr = string[];
+
+// Built-in sample functions
+sumNumbers(arr: NumberArr): number;
+concatStrings(arr: StringArr): string;
+
+// User-defined function (correct)
+myFunc(a: number): number {
+    return a + 1;
+}
+
+// User-defined function (incorrect example - uncomment to test error)
+// myFuncError(a: number): string {
+//     return a + 1;
+// }

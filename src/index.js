@@ -1,4 +1,8 @@
 // index.js
+const fs = require('fs');
+const path = require('path');
+
+// Import the pipeline modules
 const Lexer = require('./lexer.js');
 const Parser = require('./parser.js');
 const TypeChecker = require('./type_checker.js');
@@ -6,66 +10,63 @@ const IRGenerator = require('./ir_generator.js');
 const IROptimizer = require('./ir_optimizer.js');
 const IRCompiler = require('./ir_compiler.js');
 
-const sourceCode = `
-    // Built-in functions (strict):
-    abs(a: number): number;
-    print("Hello", "World"): string;
-    print(42, 52): number;
-    push(arr, 10): number;
-    pop(arr): any;
+/**
+ * Compiles Structura source code (provided as a string) into JavaScript code.
+ */
+function compileStructura(sourceCode) {
+  // Lexical analysis.
+  const lexer = new Lexer(sourceCode);
+  const tokens = lexer.tokenize();
 
-    // Type alias declarations:
-    NumberArr = number[];
-    StringArr = string[];
-    MixedArr = string|number[];
+  // Parsing.
+  const parser = new Parser(tokens);
+  const ast = parser.parse();
 
-    // Built-in sample functions with strict types:
-    sumNumbers(arr: NumberArr): number;
-    concatStrings(arr: StringArr): string;
-    processMixed(arr: MixedArr): string|number;
-
-    /* User-defined function (correct):
-    myFunc(a: number): number {
-        return a + 1;
-    }*/
-
-    // User-defined function (incorrect, return type mismatch):
-     myFuncError(a: string): string {
-         return a + "dhruv";
-    }
-
-    // User-defined function (union return type, correct if returning number):
-    //myFuncUnion(a: number): number|string {
-    //    return a + 1;
-    //}
-`;
-
-// Tokenize
-const lexer = new Lexer(sourceCode);
-const tokens = lexer.tokenize();
-console.log("Tokens:", tokens);
-
-// Parse into AST
-const parser = new Parser(tokens);
-const ast = parser.parse();
-console.log("AST:", JSON.stringify(ast, null, 2));
-
-// Type Check
-const typeChecker = new TypeChecker(ast);
-try {
+  // Type checking.
+  const typeChecker = new TypeChecker(ast);
   typeChecker.check();
-  console.log("Type check passed.");
-} catch (e) {
-  console.error("Type check error:", e.message);
-  process.exit(1);
+
+  // IR generation.
+  const ir = IRGenerator.generate(ast);
+
+  // IR optimization.
+  const optimizedIR = IROptimizer.optimize(ir);
+
+  // IR compilation.
+  const finalJS = IRCompiler.compile(optimizedIR);
+
+  return finalJS;
 }
 
-// Generate IR from AST
-const ir = IRGenerator.generate(ast);
-console.log("Intermediate Representation (IR):", JSON.stringify(ir, null, 2));
+/**
+ * Executes Structura source code immediately.
+ */
+function runStructura(sourceCode) {
+  const finalJS = compileStructura(sourceCode);
+  console.log("=== Compiled JavaScript ===");
+  console.log(finalJS);
+  console.log("=== Running Code ===");
+  // Caution: using eval for demonstration. In a production system, use a safer mechanism.
+  eval(finalJS);
+}
 
-const optimizedIR = IROptimizer.optimize(ir);
-console.log("Optimized IR:", JSON.stringify(optimizedIR, null, 2));
+// If index.js is run directly, read the .struct file passed as an argument or use a default.
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  if (args.length === 0) {
+    console.error("Usage: node index.js <filename>.struct");
+    process.exit(1);
+  }
+  const inputFile = args[0];
+  if (path.extname(inputFile) !== ".struct") {
+    console.error("Error: Input file must have a .struct extension.");
+    process.exit(1);
+  }
+  const sourceCode = fs.readFileSync(inputFile, "utf-8");
+  runStructura(sourceCode);
+}
 
-const finalJS = IRCompiler.compile(optimizedIR);
-console.log("Final JavaScript Code:\n", finalJS);
+module.exports = {
+  compileStructura,
+  runStructura
+};
