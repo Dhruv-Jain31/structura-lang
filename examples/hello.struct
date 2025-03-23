@@ -1,23 +1,25 @@
 // hello.struct
 
-// Built-in function declarations
+// Built-in function declarations (these are stubs that eventually call stdlib)
 abs(a: number): number;
 print("Hello, Structura!"): string;
 
-// Type alias declarations
+// Type alias declarations:
 NumberArr = number[];
 StringArr = string[];
+MixedArr = string|number[];
 
-// Built-in sample functions
+// Built-in sample functions:
 sumNumbers(arr: NumberArr): number;
 concatStrings(arr: StringArr): string;
+processMixed(arr: MixedArr): string|number;
 
-// User-defined function (correct)
+// User-defined function (correct):
 myFunc(a: number): number {
     return a + 1;
 }
 
-// User-defined function (incorrect example - uncomment to test error)
+// User-defined function (incorrect, will cause type error if uncommented):
 // myFuncError(a: number): string {
 //     return a + 1;
 // }
