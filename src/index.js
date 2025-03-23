@@ -3,6 +3,7 @@ const Lexer = require('./lexer.js');
 const Parser = require('./parser.js');
 const TypeChecker = require('./type_checker.js');
 const IRGenerator = require('./ir_generator.js');
+const IROptimizer = require('./ir_optimizer.js');
 
 const sourceCode = `
     // Built-in functions (strict):
@@ -27,10 +28,10 @@ const sourceCode = `
         return a + 1;
     }*/
 
-    /* User-defined function (incorrect, return type mismatch):
-     myFuncError(a: number): string {
-         return a + 1;
-    }*/
+    // User-defined function (incorrect, return type mismatch):
+     myFuncError(a: string): string {
+         return a + "dhruv";
+    }
 
     // User-defined function (union return type, correct if returning number):
     //myFuncUnion(a: number): number|string {
@@ -61,3 +62,6 @@ try {
 // Generate IR from AST
 const ir = IRGenerator.generate(ast);
 console.log("Intermediate Representation (IR):", JSON.stringify(ir, null, 2));
+
+const optimizedIR = IROptimizer.optimize(ir);
+console.log("Optimized IR:", JSON.stringify(optimizedIR, null, 2));

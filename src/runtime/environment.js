@@ -1,0 +1,1 @@
+//Manages variable scope and execution context
