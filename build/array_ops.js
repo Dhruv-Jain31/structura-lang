@@ -1,4 +1,6 @@
+const stdlib = require("../src/runtime/stdlib");
+
 function print() {
-  // Built-in function stub; implementation provided elsewhere.
+  return stdlib.print(...arguments);
 }
 

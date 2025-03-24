@@ -12,47 +12,47 @@ class Lexer {
     // Comments (ignored)
     { type: "COMMENT", regex: /\/\/[^\n]*/, ignore: true },           // single-line comments
     { type: "COMMENT", regex: /\/\*[\s\S]*?\*\//, ignore: true },        // multi-line comments
-    { 
-      type: "KEYWORD", 
-      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return)\b/ 
+    {
+      type: "KEYWORD",
+      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return)\b/
     },
-    { 
+    {
       // TYPE regex supports basic types, optional array brackets, and unions.
-      type: "TYPE", 
+      type: "TYPE",
       regex: /(?:number|string|boolean|void|any)(?:\[\])*(?:\|(?:number|string|boolean|void|any)(?:\[\])*)*/
     },
-    { 
-      type: "IDENTIFIER", 
-      regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/ 
+    {
+      type: "IDENTIFIER",
+      regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/
     },
-    { 
-      type: "NUMBER_LITERAL", 
-      regex: /\b\d+(\.\d+)?\b/ 
+    {
+      type: "NUMBER_LITERAL",
+      regex: /\b\d+(\.\d+)?\b/
     },
-    { 
+    {
       // Combined regex for double or single quoted strings.
-      type: "STRING_LITERAL", 
-      regex: /(?:"([^"]*)"|'([^']*)')/ 
+      type: "STRING_LITERAL",
+      regex: /(?:"([^"]*)"|'([^']*)')/
     },
-    { 
+    {
       // Updated SYMBOL pattern to include curly braces.
-      type: "SYMBOL", 
+      type: "SYMBOL",
       regex: /[(){}:,;=]/
     },
     // Multi-character operators
-    { 
-      type: "OPERATOR", 
-      regex: /&&|\|\|/ 
+    {
+      type: "OPERATOR",
+      regex: /&&|\|\|/
     },
     // Single-character operators (includes | if it appears outside a type context)
-    { 
-      type: "OPERATOR", 
-      regex: /[+\-*/<>!|]/ 
+    {
+      type: "OPERATOR",
+      regex: /[+\-*/<>!|]/
     },
-    { 
-      type: "WHITESPACE", 
-      regex: /\s+/, 
-      ignore: true 
+    {
+      type: "WHITESPACE",
+      regex: /\s+/,
+      ignore: true
     },
   ];
 

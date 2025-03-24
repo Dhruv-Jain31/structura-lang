@@ -1,56 +1,31 @@
-// index.js
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-// Import the pipeline modules
-const Lexer = require('./lexer.js');
-const Parser = require('./parser.js');
-const TypeChecker = require('./type_checker.js');
-const IRGenerator = require('./ir_generator.js');
-const IROptimizer = require('./ir_optimizer.js');
-const IRCompiler = require('./ir_compiler.js');
+const Lexer = require("./lexer.js");
+const Parser = require("./parser.js");
+const TypeChecker = require("./type_checker.js");
+const IRGenerator = require("./ir_generator.js");
+const IROptimizer = require("./ir_optimizer.js");
+const IRCompiler = require("./ir_compiler.js");
 
-/**
- * Compiles Structura source code (provided as a string) into JavaScript code.
- */
 function compileStructura(sourceCode) {
-  // Lexical analysis.
   const lexer = new Lexer(sourceCode);
   const tokens = lexer.tokenize();
-
-  // Parsing.
   const parser = new Parser(tokens);
   const ast = parser.parse();
-
-  // Type checking.
   const typeChecker = new TypeChecker(ast);
   typeChecker.check();
-
-  // IR generation.
   const ir = IRGenerator.generate(ast);
-
-  // IR optimization.
   const optimizedIR = IROptimizer.optimize(ir);
-
-  // IR compilation.
-  const finalJS = IRCompiler.compile(optimizedIR);
-
+  let finalJS = IRCompiler.compile(optimizedIR);
+  
+  // Check if a function "main" exists and append a call to main() if so.
+  if (finalJS.includes("function main(")) {
+    finalJS += "\n\nmain();\n";
+  }
   return finalJS;
 }
 
-/**
- * Executes Structura source code immediately.
- */
-function runStructura(sourceCode) {
-  const finalJS = compileStructura(sourceCode);
-  console.log("=== Compiled JavaScript ===");
-  console.log(finalJS);
-  console.log("=== Running Code ===");
-  // Caution: using eval for demonstration. In a production system, use a safer mechanism.
-  eval(finalJS);
-}
-
-// If index.js is run directly, read the .struct file passed as an argument or use a default.
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.length === 0) {
@@ -63,10 +38,10 @@ if (require.main === module) {
     process.exit(1);
   }
   const sourceCode = fs.readFileSync(inputFile, "utf-8");
-  runStructura(sourceCode);
+  const finalJS = compileStructura(sourceCode);
+  console.log("=== Compiled JavaScript ===\n", finalJS);
+  console.log("=== Running Code ===");
+  eval(finalJS);
 }
 
-module.exports = {
-  compileStructura,
-  runStructura
-};
+module.exports = { compileStructura };

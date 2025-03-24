@@ -1,7 +1,7 @@
 // parser.js
 const Lexer = require("./lexer.js");
 
-// Operator precedence mapping (lower number = lower precedence)
+// Operator precedence mapping (for binary expressions)
 const PRECEDENCE = {
   "||": 1,
   "&&": 2,
@@ -52,7 +52,7 @@ class Parser {
     );
   }
 
-  // Main parse method: distinguishes between type alias declarations and function declarations.
+  // Main parse method: distinguishes type alias declarations and function declarations.
   parse() {
     const ast = [];
     while (this.peek().type !== "EOF") {
@@ -178,12 +178,11 @@ class Parser {
     }
   }
 
-  // Entry point for expressions: parses binary expressions.
+  // Expression parsing with support for binary expressions.
   parseExpression() {
     return this.parseBinaryExpression(0);
   }
 
-  // Parse a primary expression: literal, identifier, or parenthesized expression.
   parsePrimary() {
     const token = this.peek();
     if (token.type === "NUMBER_LITERAL") {
@@ -204,12 +203,10 @@ class Parser {
     throw new Error(`Unexpected token in primary expression: ${token.type} (${token.value}) at line ${token.line}`);
   }
 
-  // Recursive descent parser for binary expressions with operator precedence.
   parseBinaryExpression(minPrecedence) {
     let left = this.parsePrimary();
     while (true) {
       const token = this.peek();
-      // Only process if token is an operator.
       if (token.type !== "OPERATOR") break;
       const op = token.value;
       const precedence = PRECEDENCE[op];
@@ -221,6 +218,22 @@ class Parser {
     return left;
   }
 
+  // Updated parseStatement to support expression statements.
+  parseStatement() {
+    const token = this.peek();
+    if (token.type === "KEYWORD" && token.value === "return") {
+      this.consume("KEYWORD", "return");
+      const expr = this.parseExpression();
+      this.consume("SYMBOL", ";");
+      return { type: "ReturnStatement", expression: expr };
+    } else {
+      // Treat any expression followed by a semicolon as an expression statement.
+      const expr = this.parseExpression();
+      this.consume("SYMBOL", ";");
+      return { type: "ExpressionStatement", expression: expr };
+    }
+  }
+
   parseFunctionBody() {
     const body = [];
     this.consume("SYMBOL", "{");
@@ -229,16 +242,6 @@ class Parser {
     }
     this.consume("SYMBOL", "}");
     return body;
-  }
-
-  parseStatement() {
-    if (this.peek().type === "KEYWORD" && this.peek().value === "return") {
-      this.consume("KEYWORD", "return");
-      const expr = this.parseExpression();
-      this.consume("SYMBOL", ";");
-      return { type: "ReturnStatement", expression: expr };
-    }
-    throw new Error(`Unsupported statement at line ${this.peek().line}`);
   }
 }
 

@@ -14,7 +14,7 @@ class IROptimizer {
         return instr;
       });
     }
-  
+
     /**
      * Optimize a list of statements.
      * Currently, we only optimize ReturnStatements.
@@ -61,6 +61,5 @@ class IROptimizer {
       return expr;
     }
   }
-  
+
   module.exports = IROptimizer;
-  

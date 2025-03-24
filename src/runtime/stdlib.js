@@ -8,21 +8,21 @@ function abs(x) {
     }
     return Math.abs(x);
   }
-  
+
   function min(a, b) {
     if (typeof a !== "number" || typeof b !== "number") {
       throw new Error("min() expects two numbers.");
     }
     return Math.min(a, b);
   }
-  
+
   function max(a, b) {
     if (typeof a !== "number" || typeof b !== "number") {
       throw new Error("max() expects two numbers.");
     }
     return Math.max(a, b);
   }
-  
+
   function push(arr, value) {
     if (!Array.isArray(arr)) {
       throw new Error("push() expects the first argument to be an array.");
@@ -37,12 +37,12 @@ function abs(x) {
     }
     return arr.pop();
   }
-  
+
   function print(...args) {
     // For runtime type-checking, you could add validations here if desired.
     console.log(...args);
   }
-  
+
   module.exports = {
     abs,
     min,

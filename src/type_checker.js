@@ -6,24 +6,24 @@ class TypeChecker {
     // Predefined function signatures for built‑in functions.
     // These functions are strict and enforced by the table.
     this.functionSignatures = {
-      abs: { 
+      abs: {
         parameters: [{ kind: "primitive", name: "number" }],
         returnType: { kind: "primitive", name: "number" }
       },
       print: { variadic: true },
-      push: { 
+      push: {
         parameters: [{ kind: "primitive", name: "any" }, { kind: "primitive", name: "number" }],
         returnType: { kind: "primitive", name: "number" }
       },
-      pop: { 
+      pop: {
         parameters: [{ kind: "primitive", name: "any" }],
         returnType: { kind: "primitive", name: "any" }
       },
-      sumNumbers: { 
+      sumNumbers: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "number" } }],
         returnType: { kind: "primitive", name: "number" }
       },
-      concatStrings: { 
+      concatStrings: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "string" } }],
         returnType: { kind: "primitive", name: "string" }
       },
