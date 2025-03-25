@@ -16,7 +16,7 @@ export function Footer() {
           </div>
           <div className="flex space-x-8">
             <a
-              href="https://github.com/structura/structura"
+              href="https://github.com/Dhruv-Jain31/structura-lang"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"

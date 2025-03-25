@@ -8,8 +8,8 @@ min(a:number,b:number): number;
 //NumberArr = number[];
 //StringArr = string[];
 
-sumNumbers(arr: NumberArr): number;
-concatStrings(arr: StringArr): string;
+//sumNumbers(arr: NumberArr): number;
+//concatStrings(arr: StringArr): string;
 
 // User-defined function:
 //myFunc(a: number): number {
@@ -17,7 +17,7 @@ concatStrings(arr: StringArr): string;
 //}
 
 // Top-level statement:
-print(4):string ;
+print(4):number ;
 print(abs(0.5)):number;
 print(max(1,10)):number;
 print(min(0,5)):number;

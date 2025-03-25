@@ -22,7 +22,7 @@ export function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
             <a href="#playground" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Playground</a>
             <a href="#install" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Install</a>
             <a
-              href="https://github.com/structura/structura"
+              href="https://github.com/Dhruv-Jain31/structura-lang"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"

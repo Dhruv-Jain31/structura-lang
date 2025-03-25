@@ -18,14 +18,6 @@ function min(a, b) {
   return stdlib.min(...arguments);
 }
 
-function sumNumbers(arr) {
-  return stdlib.sumNumbers(...arguments);
-}
-
-function concatStrings(arr) {
-  return stdlib.concatStrings(...arguments);
-}
-
 // Top-level statements:
 print(4);
 print(abs(0.5));
