@@ -29,7 +29,7 @@ class IRGenerator {
         };
         ir.push(aliasIR);
       } else if (node.type === "ExpressionStatement") {
-        // Handle top-level expression statements.
+        // For top-level expression statements.
         const exprIR = IRGenerator.generateExpressionIR(node.expression);
         ir.push({
           op: "expression_statement",
@@ -75,11 +75,16 @@ class IRGenerator {
         return { op: "variable", name: expr.name, type: "any" };
       case "BinaryExpression":
         return {
-          type: "BinaryExpression", // This is important for the optimizer.
           op: "binary_expression",
           operator: expr.operator,
           left: IRGenerator.generateExpressionIR(expr.left),
           right: IRGenerator.generateExpressionIR(expr.right)
+        };
+      case "CallExpression":
+        return {
+          op: "call_expression",
+          callee: IRGenerator.generateExpressionIR(expr.callee),
+          arguments: expr.arguments.map(arg => IRGenerator.generateExpressionIR(arg))
         };
       default:
         throw new Error(`Unsupported expression type: ${expr.type}`);

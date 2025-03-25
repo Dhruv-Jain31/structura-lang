@@ -1,3 +1,4 @@
+// ir_compiler.js
 class IRCompiler {
   /**
    * Compiles the IR nodes into JavaScript code.
@@ -13,7 +14,7 @@ class IRCompiler {
     }
     output += `const stdlib = require("../src/runtime/stdlib");\n\n`;
 
-    // Separate nodes by type using a map for functions to avoid duplicates.
+    // Separate IR nodes.
     const functionsMap = new Map();
     const typeAliases = [];
     const topLevelStatements = [];
@@ -22,7 +23,6 @@ class IRCompiler {
       switch (node.op) {
         case "function_decl":
           if (functionsMap.has(node.name)) {
-            // Prefer a node with a body over one without.
             const existing = functionsMap.get(node.name);
             if (node.body && node.body.length > 0 && (!existing.body || existing.body.length === 0)) {
               functionsMap.set(node.name, node);
@@ -53,7 +53,7 @@ class IRCompiler {
       output += this.compileFunction(funcNode) + "\n\n";
     }
 
-    // Emit top-level execution statements.
+    // Emit top-level statements.
     if (topLevelStatements.length > 0) {
       output += "// Top-level statements:\n";
       for (const stmt of topLevelStatements) {
@@ -80,8 +80,8 @@ class IRCompiler {
         code += "\n  " + this.compileStatement(stmt);
       }
     } else {
-      // For built-in functions, delegate to stdlib.
-      code += `\n  return stdlib.${node.name}(${params});`;
+      // Built-in function: forward all arguments.
+      code += `\n  return stdlib.${node.name}(...arguments);`;
     }
     
     code += "\n}";
@@ -109,7 +109,6 @@ class IRCompiler {
   static compileExpression(expr) {
     switch (expr.op) {
       case "literal":
-        // For strings, ensure quotes are added.
         return typeof expr.value === "string" ? JSON.stringify(expr.value) : expr.value;
       case "variable":
         return expr.name;
@@ -121,6 +120,13 @@ class IRCompiler {
           " " +
           this.compileExpression(expr.right)
         );
+      case "call_expression":
+        return (
+          this.compileExpression(expr.callee) +
+          "(" +
+          expr.arguments.map(arg => this.compileExpression(arg)).join(", ") +
+          ")"
+        );
       default:
         console.warn("IRCompiler: Unhandled expression op: " + expr.op);
         return "";
@@ -131,7 +137,7 @@ class IRCompiler {
    * Converts a type annotation to its string representation.
    */
   static typeToString(typeAnnotation) {
-    // Adjust this conversion based on the structure of your type annotation objects.
+    // Assume typeAnnotation is either a string or an object with a 'name' property.
     if (typeof typeAnnotation === "object" && typeAnnotation.name) {
       return typeAnnotation.name;
     }

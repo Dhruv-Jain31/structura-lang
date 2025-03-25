@@ -31,10 +31,12 @@ try {
   // Lexing
   const lexer = new Lexer(sourceCode);
   const tokens = lexer.tokenize();
+  console.log(tokens);
 
   // Parsing
   const parser = new Parser(tokens);
   const ast = parser.parse();
+  console.log(ast);
 
   // Type Checking
   const typeChecker = new TypeChecker(ast);

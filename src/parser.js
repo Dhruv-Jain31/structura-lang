@@ -52,7 +52,18 @@ class Parser {
     );
   }
 
-  // Main parse method: distinguishes type alias declarations and function declarations.
+  // Check if the tokens after "(" indicate a parameter list.
+  isParameterList() {
+    // Lookahead: if the next token is IDENTIFIER and the one after is ":" then it's parameters.
+    const next = this.tokens[this.position + 1];
+    const nextNext = this.tokens[this.position + 2];
+    if (next && next.type === "IDENTIFIER" && nextNext && nextNext.value === ":") {
+      return true;
+    }
+    return false;
+  }
+
+  // Main parse method: distinguishes type alias declarations, function declarations, and call expressions.
   parse() {
     const ast = [];
     while (this.peek().type !== "EOF") {
@@ -62,11 +73,17 @@ class Parser {
         if (next && next.value === "=") {
           ast.push(this.parseTypeAlias());
         } else if (next && next.value === "(") {
-          ast.push(this.parseFunction());
+          // Distinguish between function declaration and call expression:
+          if (this.isParameterList()) {
+            ast.push(this.parseFunction());
+          } else {
+            ast.push(this.parseCallExpressionStatement());
+          }
         } else {
           throw new Error(`Unexpected token ${current.type} (${current.value}) at line ${current.line}`);
         }
       } else if (current.type === "KEYWORD") {
+        // For KEYWORD we assume it's a function declaration (e.g. "return" inside a function body)
         ast.push(this.parseFunction());
       } else if (current.value === ";") {
         this.consume("SYMBOL", ";");
@@ -148,6 +165,28 @@ class Parser {
       returnType,
       body,
       line: funcLine,
+    };
+  }
+
+  // Parses call expression statements (for top-level calls)
+  parseCallExpressionStatement() {
+    const calleeToken = this.consume("IDENTIFIER");
+    const callee = { type: "Identifier", name: calleeToken.value, line: calleeToken.line };
+    this.consume("SYMBOL", "(");
+    const args = this.parseArguments(); // These will be expressions (not parameters)
+    this.consume("SYMBOL", ")");
+    const returnTypeToken = this.consume("RETURN_TYPE");
+    const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
+    this.consume("SYMBOL", ";");
+    return {
+      type: "ExpressionStatement",
+      expression: {
+        type: "CallExpression",
+        callee,
+        arguments: args,
+      },
+      returnType,
+      line: calleeToken.line,
     };
   }
 

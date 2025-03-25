@@ -14,6 +14,7 @@ myFunc(a: number): number {
 }
 
 // Top-level statement:
-print("This code runs without an explicit main function!"): string;
+print("12"): string;
 abs(0.5):number;
+
 
