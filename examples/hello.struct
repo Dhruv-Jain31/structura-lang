@@ -1,6 +1,7 @@
 // hello.struct
 
 abs(a: number): number;
+print("a"):string;
 
 NumberArr = number[];
 StringArr = string[];
@@ -9,9 +10,9 @@ sumNumbers(arr: NumberArr): number;
 concatStrings(arr: StringArr): string;
 
 // User-defined function:
-myFunc(a: number): number {
-    return a + 1;
-}
+//myFunc(a: number): number {
+//    return a + 1;
+//}
 
 // Top-level statement:
 print("12"): string;

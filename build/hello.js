@@ -16,12 +16,8 @@ function concatStrings(arr) {
   return stdlib.concatStrings(...arguments);
 }
 
-function myFunc(a) {
-  return a + 1;
-}
-
-function print() {
-  return stdlib.print(...arguments);
-}
-
+// Top-level statements:
+print("a");
+print("12");
+abs(0.5);
 })();

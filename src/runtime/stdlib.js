@@ -63,5 +63,4 @@ module.exports = {
   print,
   sumNumbers,
   concatStrings,
-  myFunc,
 };

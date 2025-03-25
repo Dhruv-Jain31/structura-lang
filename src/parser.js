@@ -52,38 +52,30 @@ class Parser {
     );
   }
 
-  // Checks whether the tokens after the "(" indicate a parameter list.
+  // Checks whether the tokens after "(" indicate a parameter list.
   isParameterList() {
-    // Assume current token is function name. The next token must be "(".
+    // We expect the next token after "(" to be the start of a parameter list
+    // if it is an IDENTIFIER followed by ":".
     const parenToken = this.tokens[this.position + 1];
     if (!parenToken || parenToken.value !== "(") return false;
-    // Look at the token immediately after "(".
     const tokenAfterParen = this.tokens[this.position + 2];
     if (!tokenAfterParen) return false;
-    // If the token immediately after "(" is ")", it's an empty parameter list.
-    if (tokenAfterParen.value === ")") return true;
-    // Otherwise, if it's an identifier and the token after that is ":" then we have a parameter.
+    if (tokenAfterParen.value === ")") return true; // empty list, which is fine
     const tokenColon = this.tokens[this.position + 3];
     return tokenAfterParen.type === "IDENTIFIER" && tokenColon && tokenColon.value === ":";
   }
 
-  // Helper to decide if a KEYWORD should be parsed as a call expression.
-  isBuiltInCall(token) {
-    const builtInFunctions = ["print", "abs", "sumNumbers", "concatStrings"];
-    return builtInFunctions.includes(token.value);
-  }
-
-  // Main parse method: distinguishes type alias declarations, function declarations, and call expression statements.
+  // Main parse method: distinguishes type alias declarations, function declarations, and call expressions.
   parse() {
     const ast = [];
     while (this.peek().type !== "EOF") {
       const current = this.peek();
-      if (current.type === "IDENTIFIER") {
+      if (current.type === "IDENTIFIER" || current.type === "KEYWORD") {
         const next = this.tokens[this.position + 1];
         if (next && next.value === "=") {
           ast.push(this.parseTypeAlias());
         } else if (next && next.value === "(") {
-          // Distinguish based on what follows "(".
+          // Use lookahead to decide:
           if (this.isParameterList()) {
             ast.push(this.parseFunction());
           } else {
@@ -91,13 +83,6 @@ class Parser {
           }
         } else {
           throw new Error(`Unexpected token ${current.type} (${current.value}) at line ${current.line}`);
-        }
-      } else if (current.type === "KEYWORD") {
-        // For KEYWORD tokens, check if it should be a call (built-in) or a function declaration.
-        if (this.isBuiltInCall(current)) {
-          ast.push(this.parseCallExpressionStatement());
-        } else {
-          ast.push(this.parseFunction());
         }
       } else if (current.value === ";") {
         this.consume("SYMBOL", ";");
@@ -153,15 +138,17 @@ class Parser {
     }
   }
 
+  // Parse a function declaration. In a declaration, parameters are parsed as Parameter nodes.
   parseFunction() {
     const funcNameToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const funcName = funcNameToken.value;
     const funcLine = funcNameToken.line;
 
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments();
+    const args = this.parseArguments(true); // parameter context
     this.consume("SYMBOL", ")");
 
+    // Lexer merges ":" and TYPE into a RETURN_TYPE token.
     const returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
 
@@ -182,12 +169,12 @@ class Parser {
     };
   }
 
-  // Parses call expression statements for top-level calls.
+  // Parse a call expression statement. In call expressions, all arguments are parsed as expressions.
   parseCallExpressionStatement() {
     const calleeToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const callee = { type: "Identifier", name: calleeToken.value, line: calleeToken.line };
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments(); // These are expressions.
+    const args = this.parseArguments(false); // expression context
     this.consume("SYMBOL", ")");
     const returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
@@ -204,19 +191,23 @@ class Parser {
     };
   }
 
-  parseArguments() {
+  // parseArguments accepts a flag: true means parameter context (for declarations), false means expression context (for calls).
+  parseArguments(isParamContext) {
     const args = [];
     if (this.peek().value === ")") return args;
-    args.push(this.parseArgument());
+    args.push(this.parseArgument(isParamContext));
     while (this.peek().value === ",") {
       this.consume("SYMBOL", ",");
-      args.push(this.parseArgument());
+      args.push(this.parseArgument(isParamContext));
     }
     return args;
   }
 
-  parseArgument() {
+  // In parameter context, if we see an IDENTIFIER followed by ":", parse a Parameter node.
+  // Otherwise, always parse as an expression.
+  parseArgument(isParamContext) {
     if (
+      isParamContext &&
       this.peek().type === "IDENTIFIER" &&
       this.tokens[this.position + 1] &&
       this.tokens[this.position + 1].value === ":"
@@ -271,7 +262,7 @@ class Parser {
     return left;
   }
 
-  // Updated parseStatement to support expression statements.
+  // parseStatement: treat an expression followed by a semicolon as an ExpressionStatement.
   parseStatement() {
     const token = this.peek();
     if (token.type === "KEYWORD" && token.value === "return") {

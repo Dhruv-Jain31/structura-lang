@@ -4,7 +4,7 @@ class Lexer {
     this.code = code;
     this.tokens = [];
     this.position = 0;
-    this.line = 1; // Start at line 1
+    this.line = 0; // Start at line 1
   }
 
   // Updated token patterns:
