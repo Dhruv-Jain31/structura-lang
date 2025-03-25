@@ -52,18 +52,28 @@ class Parser {
     );
   }
 
-  // Check if the tokens after "(" indicate a parameter list.
+  // Checks whether the tokens after the "(" indicate a parameter list.
   isParameterList() {
-    // Lookahead: if the next token is IDENTIFIER and the one after is ":" then it's parameters.
-    const next = this.tokens[this.position + 1];
-    const nextNext = this.tokens[this.position + 2];
-    if (next && next.type === "IDENTIFIER" && nextNext && nextNext.value === ":") {
-      return true;
-    }
-    return false;
+    // Assume current token is function name. The next token must be "(".
+    const parenToken = this.tokens[this.position + 1];
+    if (!parenToken || parenToken.value !== "(") return false;
+    // Look at the token immediately after "(".
+    const tokenAfterParen = this.tokens[this.position + 2];
+    if (!tokenAfterParen) return false;
+    // If the token immediately after "(" is ")", it's an empty parameter list.
+    if (tokenAfterParen.value === ")") return true;
+    // Otherwise, if it's an identifier and the token after that is ":" then we have a parameter.
+    const tokenColon = this.tokens[this.position + 3];
+    return tokenAfterParen.type === "IDENTIFIER" && tokenColon && tokenColon.value === ":";
   }
 
-  // Main parse method: distinguishes type alias declarations, function declarations, and call expressions.
+  // Helper to decide if a KEYWORD should be parsed as a call expression.
+  isBuiltInCall(token) {
+    const builtInFunctions = ["print", "abs", "sumNumbers", "concatStrings"];
+    return builtInFunctions.includes(token.value);
+  }
+
+  // Main parse method: distinguishes type alias declarations, function declarations, and call expression statements.
   parse() {
     const ast = [];
     while (this.peek().type !== "EOF") {
@@ -73,7 +83,7 @@ class Parser {
         if (next && next.value === "=") {
           ast.push(this.parseTypeAlias());
         } else if (next && next.value === "(") {
-          // Distinguish between function declaration and call expression:
+          // Distinguish based on what follows "(".
           if (this.isParameterList()) {
             ast.push(this.parseFunction());
           } else {
@@ -83,8 +93,12 @@ class Parser {
           throw new Error(`Unexpected token ${current.type} (${current.value}) at line ${current.line}`);
         }
       } else if (current.type === "KEYWORD") {
-        // For KEYWORD we assume it's a function declaration (e.g. "return" inside a function body)
-        ast.push(this.parseFunction());
+        // For KEYWORD tokens, check if it should be a call (built-in) or a function declaration.
+        if (this.isBuiltInCall(current)) {
+          ast.push(this.parseCallExpressionStatement());
+        } else {
+          ast.push(this.parseFunction());
+        }
       } else if (current.value === ";") {
         this.consume("SYMBOL", ";");
       } else {
@@ -168,12 +182,12 @@ class Parser {
     };
   }
 
-  // Parses call expression statements (for top-level calls)
+  // Parses call expression statements for top-level calls.
   parseCallExpressionStatement() {
-    const calleeToken = this.consume("IDENTIFIER");
+    const calleeToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const callee = { type: "Identifier", name: calleeToken.value, line: calleeToken.line };
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments(); // These will be expressions (not parameters)
+    const args = this.parseArguments(); // These are expressions.
     this.consume("SYMBOL", ")");
     const returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
@@ -266,7 +280,6 @@ class Parser {
       this.consume("SYMBOL", ";");
       return { type: "ReturnStatement", expression: expr };
     } else {
-      // Treat any expression followed by a semicolon as an expression statement.
       const expr = this.parseExpression();
       this.consume("SYMBOL", ";");
       return { type: "ExpressionStatement", expression: expr };

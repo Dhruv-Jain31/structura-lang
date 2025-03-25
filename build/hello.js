@@ -1,10 +1,10 @@
 (function() {
 const stdlib = require("../src/runtime/stdlib");
 
-// Type alias: NumberArr = number[]
-// Type alias: StringArr = string[]
+// Type alias: NumberArr = [object Object]
+// Type alias: StringArr = [object Object]
 
-function abs() {
+function abs(a) {
   return stdlib.abs(...arguments);
 }
 
