@@ -1,0 +1,25 @@
+import React from 'react';
+
+interface OutputDisplayProps {
+  output: string;
+  type: 'tokens' | 'parseTree' | 'compiled' | null;
+}
+
+export function OutputDisplay({ output, type }: OutputDisplayProps) {
+  if (!type || !output) return null;
+
+  const titles = {
+    tokens: 'Tokens',
+    parseTree: 'Parse Tree',
+    compiled: 'Compiled Output'
+  };
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold mb-3">{titles[type]}</h2>
+      <pre className="p-4 bg-slate-800 text-slate-50 rounded-lg overflow-x-auto font-mono text-sm">
+        {output}
+      </pre>
+    </div>
+  );
+}

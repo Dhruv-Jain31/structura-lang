@@ -8,6 +8,10 @@ function abs(a) {
   return stdlib.abs(...arguments);
 }
 
+function print(msg) {
+  return stdlib.print(...arguments);
+}
+
 function sumNumbers(arr) {
   return stdlib.sumNumbers(...arguments);
 }
@@ -17,7 +21,6 @@ function concatStrings(arr) {
 }
 
 // Top-level statements:
-print("a");
-print("12");
+print("This code runs without an explicit main function!");
 abs(0.5);
 })();
