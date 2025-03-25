@@ -12,10 +12,14 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Temporary file path to store playground code
-const tempFilePath = path.join(__dirname, 'temp.struct');
+// Ensure the temporary file is created inside the examples folder
+// __dirname is backend/src; so go one level up then into examples.
+const tempFilePath = path.join(__dirname, '..', 'examples', 'temp.struct');
 
-// Function to write the incoming code to the temporary file
+// Debug: log the resolved temp file path to verify extension
+console.log('Temporary file will be saved as:', tempFilePath);
+
+// Write incoming code to the temporary file (overwriting previous content)
 function saveCodeToFile(code) {
   fs.writeFileSync(tempFilePath, code, 'utf8');
 }
@@ -37,7 +41,7 @@ app.post('/api/lexer', async (req, res) => {
   const { code } = req.body;
   try {
     saveCodeToFile(code);
-    // Command: run cli.js with the "lexer" argument
+    // Run cli.js with "lexer" argument, ensuring the file passed has a .struct extension.
     const command = `node ${path.join(__dirname, 'cli.js')} lexer ${tempFilePath}`;
     const output = await runCommand(command);
     res.json({ output });
@@ -51,7 +55,6 @@ app.post('/api/parser', async (req, res) => {
   const { code } = req.body;
   try {
     saveCodeToFile(code);
-    // Command: run cli.js with the "parse" argument
     const command = `node ${path.join(__dirname, 'cli.js')} parse ${tempFilePath}`;
     const output = await runCommand(command);
     res.json({ output });
@@ -65,7 +68,6 @@ app.post('/api/ir', async (req, res) => {
   const { code } = req.body;
   try {
     saveCodeToFile(code);
-    // Command: run cli.js with the "ir" argument
     const command = `node ${path.join(__dirname, 'cli.js')} ir ${tempFilePath}`;
     const output = await runCommand(command);
     res.json({ output });
@@ -74,12 +76,11 @@ app.post('/api/ir', async (req, res) => {
   }
 });
 
-// Endpoint for full execution (run the complete pipeline)
+// Endpoint for full execution: run the complete pipeline (using index.js)
 app.post('/api/run', async (req, res) => {
   const { code } = req.body;
   try {
     saveCodeToFile(code);
-    // Command: run index.js which processes the complete pipeline
     const command = `node ${path.join(__dirname, 'index.js')} ${tempFilePath}`;
     const output = await runCommand(command);
     res.json({ output });

@@ -27,7 +27,7 @@ function concatStrings(arr) {
 }
 
 // Top-level statements:
-print(4);
+print(24);
 print(abs(0.5));
 print(max(1, 10));
 print(min(0, 5));

@@ -17,7 +17,14 @@ export function OutputDisplay({ output, type }: OutputDisplayProps) {
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-3">{titles[type]}</h2>
-      <pre className="p-4 bg-slate-800 text-slate-50 rounded-lg overflow-x-auto font-mono text-sm">
+      <pre 
+        className="p-4 bg-slate-800 text-slate-50 rounded-lg overflow-x-auto overflow-y-auto font-mono text-sm"
+        style={{
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all',
+          maxHeight: '500px'
+        }}
+      >
         {output}
       </pre>
     </div>
