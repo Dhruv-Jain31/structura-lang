@@ -1,7 +1,6 @@
 // hello.struct
 
 abs(a: number): number;
-print("Hello, Structura!"): string;
 
 NumberArr = number[];
 StringArr = string[];
@@ -16,3 +15,5 @@ myFunc(a: number): number {
 
 // Top-level statement:
 print("This code runs without an explicit main function!"): string;
+abs(0.5):number;
+

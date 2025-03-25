@@ -1,105 +1,141 @@
-// ir_compiler.js
 class IRCompiler {
   /**
-   * Compile the IR (an array of IR nodes) into a final JavaScript source string.
-   * Built-in functions (without a body) are compiled to call runtime implementations
-   * from the stdlib module using explicit argument passing.
+   * Compiles the IR nodes into JavaScript code.
+   *
+   * @param {Array} ir - The IR nodes.
+   * @param {boolean} [wrap=true] - Whether to wrap the output in an IIFE.
+   * @returns {string} The compiled JavaScript code.
    */
-  static compile(ir) {
+  static compile(ir, wrap = true) {
     let output = "";
-    // Adjust the require path so that it points correctly from the build folder.
+    if (wrap) {
+      output += `(function() {\n`;
+    }
     output += `const stdlib = require("../src/runtime/stdlib");\n\n`;
 
+    // Separate nodes by type using a map for functions to avoid duplicates.
+    const functionsMap = new Map();
+    const typeAliases = [];
+    const topLevelStatements = [];
+
     for (const node of ir) {
-      if (node.op === "function_decl") {
-        output += IRCompiler.compileFunction(node) + "\n\n";
-      } else if (node.op === "type_alias") {
-        // Output type aliases as comments.
-        output += `// Type alias: ${node.alias} = ${IRCompiler.typeToString(node.typeAnnotation)}\n`;
-      } else {
-        console.warn(`IRCompiler: Unhandled IR node op: ${node.op}`);
+      switch (node.op) {
+        case "function_decl":
+          if (functionsMap.has(node.name)) {
+            // Prefer a node with a body over one without.
+            const existing = functionsMap.get(node.name);
+            if (node.body && node.body.length > 0 && (!existing.body || existing.body.length === 0)) {
+              functionsMap.set(node.name, node);
+            }
+          } else {
+            functionsMap.set(node.name, node);
+          }
+          break;
+        case "type_alias":
+          typeAliases.push(node);
+          break;
+        case "expression_statement":
+          topLevelStatements.push(node);
+          break;
+        default:
+          console.warn(`IRCompiler: Unhandled IR node op: ${node.op}`);
       }
+    }
+
+    // Emit type aliases as comments.
+    for (const aliasNode of typeAliases) {
+      output += `// Type alias: ${aliasNode.alias} = ${this.typeToString(aliasNode.typeAnnotation)}\n`;
+    }
+    output += "\n";
+
+    // Emit function declarations.
+    for (const funcNode of functionsMap.values()) {
+      output += this.compileFunction(funcNode) + "\n\n";
+    }
+
+    // Emit top-level execution statements.
+    if (topLevelStatements.length > 0) {
+      output += "// Top-level statements:\n";
+      for (const stmt of topLevelStatements) {
+        output += this.compileStatement(stmt) + "\n";
+      }
+    }
+
+    if (wrap) {
+      output += `})();\n`;
     }
     return output;
   }
 
   /**
-   * Compile a function declaration IR node into JavaScript.
-   * If the node includes a body, it's a user-defined function.
-   * Otherwise, it's built-in, and we generate a call to stdlib.<functionName>
-   * using explicit parameter names.
+   * Compiles a function declaration IR node.
    */
   static compileFunction(node) {
     const params = node.parameters.map(p => p.name).join(", ");
     let code = `function ${node.name}(${params}) {`;
+    
     if (node.body && node.body.length > 0) {
-      // User-defined function: compile each statement in the body.
+      // Compile each statement in the function body.
       for (const stmt of node.body) {
-        code += "\n  " + IRCompiler.compileStatement(stmt);
+        code += "\n  " + this.compileStatement(stmt);
       }
     } else {
-      // Built-in function: generate a call to the runtime implementation.
-      // Instead of using ...arguments, we use the explicit parameter names.
-      // If no parameters, just call stdlib.<functionName>()
+      // For built-in functions, delegate to stdlib.
       code += `\n  return stdlib.${node.name}(${params});`;
     }
+    
     code += "\n}";
     return code;
   }
 
   /**
-   * Compile a statement node.
-   * Currently, only ReturnStatement and ExpressionStatement are supported.
+   * Compiles a statement IR node.
    */
   static compileStatement(stmt) {
-    if (stmt.type === "ReturnStatement") {
-      return "return " + IRCompiler.compileExpression(stmt.expression) + ";";
+    switch (stmt.op) {
+      case "return_statement":
+        return "return " + this.compileExpression(stmt.expression) + ";";
+      case "expression_statement":
+        return this.compileExpression(stmt.expression) + ";";
+      default:
+        console.warn("IRCompiler: Unhandled statement op: " + stmt.op);
+        return "";
     }
-    if (stmt.type === "ExpressionStatement") {
-      return IRCompiler.compileExpression(stmt.expression) + ";";
-    }
-    throw new Error(`Unsupported statement type: ${stmt.type}`);
   }
 
   /**
-   * Compile an expression node into JavaScript code.
-   * Supports literals, identifiers, and binary expressions.
+   * Compiles an expression IR node.
    */
   static compileExpression(expr) {
-    if (expr.op === "literal") {
-      if (expr.type === "number") {
-        return String(expr.value);
-      } else if (expr.type === "string") {
-        return `"${expr.value}"`;
-      }
-      return String(expr.value);
+    switch (expr.op) {
+      case "literal":
+        // For strings, ensure quotes are added.
+        return typeof expr.value === "string" ? JSON.stringify(expr.value) : expr.value;
+      case "variable":
+        return expr.name;
+      case "binary_expression":
+        return (
+          this.compileExpression(expr.left) +
+          " " +
+          expr.operator +
+          " " +
+          this.compileExpression(expr.right)
+        );
+      default:
+        console.warn("IRCompiler: Unhandled expression op: " + expr.op);
+        return "";
     }
-    if (expr.op === "variable") {
-      return expr.name;
-    }
-    if (expr.type === "BinaryExpression") {
-      return `${IRCompiler.compileExpression(expr.left)} ${expr.operator} ${IRCompiler.compileExpression(expr.right)}`;
-    }
-    throw new Error(`Unsupported IR expression type: ${expr.type || expr.op}`);
   }
 
   /**
-   * Convert a structured type into a string (for comments).
+   * Converts a type annotation to its string representation.
    */
-  static typeToString(type) {
-    if (type.kind === "primitive") {
-      return type.name;
+  static typeToString(typeAnnotation) {
+    // Adjust this conversion based on the structure of your type annotation objects.
+    if (typeof typeAnnotation === "object" && typeAnnotation.name) {
+      return typeAnnotation.name;
     }
-    if (type.kind === "array") {
-      return IRCompiler.typeToString(type.elementType) + "[]";
-    }
-    if (type.kind === "union") {
-      return type.types.map(t => IRCompiler.typeToString(t)).join("|");
-    }
-    if (type.kind === "alias") {
-      return type.name;
-    }
-    return "unknown";
+    return String(typeAnnotation);
   }
 }
 

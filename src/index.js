@@ -18,14 +18,14 @@ function compileStructura(sourceCode) {
   const ir = IRGenerator.generate(ast);
   const optimizedIR = IROptimizer.optimize(ir);
   let finalJS = IRCompiler.compile(optimizedIR);
-  
-  // Check if a function "main" exists and append a call to main() if so.
-  if (finalJS.includes("function main(")) {
-    finalJS += "\n\nmain();\n";
-  }
+
+  // Wrap top-level code in IIFE (Immediately Invoked Function Expression)
+  finalJS = `(function(){\n${finalJS}\n})();`;
+
   return finalJS;
 }
 
+// If run as standalone (not imported as a module)
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.length === 0) {
@@ -39,9 +39,9 @@ if (require.main === module) {
   }
   const sourceCode = fs.readFileSync(inputFile, "utf-8");
   const finalJS = compileStructura(sourceCode);
-  console.log("=== Compiled JavaScript ===\n", finalJS);
-  console.log("=== Running Code ===");
-  eval(finalJS);
+  
+  console.log("=== Running Structura Code ===");
+  eval(finalJS);  // Direct execution in Node.js
 }
 
 module.exports = { compileStructura };
