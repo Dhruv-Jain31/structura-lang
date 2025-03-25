@@ -54,13 +54,12 @@ class Parser {
 
   // Checks whether the tokens after "(" indicate a parameter list.
   isParameterList() {
-    // We expect the next token after "(" to be the start of a parameter list
-    // if it is an IDENTIFIER followed by ":".
+    // Assume current token is function name. Next token must be "(".
     const parenToken = this.tokens[this.position + 1];
     if (!parenToken || parenToken.value !== "(") return false;
     const tokenAfterParen = this.tokens[this.position + 2];
     if (!tokenAfterParen) return false;
-    if (tokenAfterParen.value === ")") return true; // empty list, which is fine
+    if (tokenAfterParen.value === ")") return true; // empty list
     const tokenColon = this.tokens[this.position + 3];
     return tokenAfterParen.type === "IDENTIFIER" && tokenColon && tokenColon.value === ":";
   }
@@ -138,14 +137,14 @@ class Parser {
     }
   }
 
-  // Parse a function declaration. In a declaration, parameters are parsed as Parameter nodes.
+  // Parse a function declaration. In declarations, parameters are parsed as Parameter nodes.
   parseFunction() {
     const funcNameToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const funcName = funcNameToken.value;
     const funcLine = funcNameToken.line;
 
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments(true); // parameter context
+    const args = this.parseArguments(true); // parameter context = true
     this.consume("SYMBOL", ")");
 
     // Lexer merges ":" and TYPE into a RETURN_TYPE token.
@@ -169,12 +168,12 @@ class Parser {
     };
   }
 
-  // Parse a call expression statement. In call expressions, all arguments are parsed as expressions.
+  // Parse a call expression statement. In calls, all arguments are parsed as expressions.
   parseCallExpressionStatement() {
     const calleeToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const callee = { type: "Identifier", name: calleeToken.value, line: calleeToken.line };
     this.consume("SYMBOL", "(");
-    const args = this.parseArguments(false); // expression context
+    const args = this.parseArguments(false); // expression context = false
     this.consume("SYMBOL", ")");
     const returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
@@ -191,7 +190,7 @@ class Parser {
     };
   }
 
-  // parseArguments accepts a flag: true means parameter context (for declarations), false means expression context (for calls).
+  // parseArguments: isParamContext flag tells us whether to parse parameters or expressions.
   parseArguments(isParamContext) {
     const args = [];
     if (this.peek().value === ")") return args;
@@ -203,8 +202,8 @@ class Parser {
     return args;
   }
 
-  // In parameter context, if we see an IDENTIFIER followed by ":", parse a Parameter node.
-  // Otherwise, always parse as an expression.
+  // In parameter context, if an IDENTIFIER is followed by ":" then parse a Parameter node.
+  // Otherwise, parse as an expression.
   parseArgument(isParamContext) {
     if (
       isParamContext &&
@@ -227,24 +226,38 @@ class Parser {
     return this.parseBinaryExpression(0);
   }
 
+  // Updated parsePrimary to support nested call expressions.
   parsePrimary() {
+    let expr;
     const token = this.peek();
     if (token.type === "NUMBER_LITERAL") {
-      return { type: "NumberLiteral", value: this.consume("NUMBER_LITERAL").value, line: token.line };
-    }
-    if (token.type === "STRING_LITERAL") {
-      return { type: "StringLiteral", value: this.consume("STRING_LITERAL").value, line: token.line };
-    }
-    if (token.type === "IDENTIFIER") {
-      return { type: "Identifier", name: this.consume("IDENTIFIER").value, line: token.line };
-    }
-    if (token.value === "(") {
+      expr = { type: "NumberLiteral", value: this.consume("NUMBER_LITERAL").value, line: token.line };
+    } else if (token.type === "STRING_LITERAL") {
+      expr = { type: "StringLiteral", value: this.consume("STRING_LITERAL").value, line: token.line };
+    } else if (token.type === "IDENTIFIER" || (token.type === "KEYWORD" && token.value !== "return")) {
+      expr = { type: "Identifier", name: this.consume(token.type).value, line: token.line };
+    } else if (token.value === "(") {
       this.consume("SYMBOL", "(");
-      const expr = this.parseExpression();
+      expr = this.parseExpression();
       this.consume("SYMBOL", ")");
-      return expr;
+    } else {
+      throw new Error(`Unexpected token in primary expression: ${token.type} (${token.value}) at line ${token.line}`);
     }
-    throw new Error(`Unexpected token in primary expression: ${token.type} (${token.value}) at line ${token.line}`);
+
+    // Support for nested call expressions.
+    while (this.peek().value === "(") {
+      this.consume("SYMBOL", "(");
+      const args = this.parseArguments(false); // always expression context in a call
+      this.consume("SYMBOL", ")");
+      expr = {
+        type: "CallExpression",
+        callee: expr,
+        arguments: args,
+        line: expr.line
+      };
+    }
+
+    return expr;
   }
 
   parseBinaryExpression(minPrecedence) {

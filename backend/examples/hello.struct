@@ -1,10 +1,12 @@
 // hello.struct
 
 abs(a: number): number;
-print(msg: string): string;
+print(msg: number): number;
+max(a:number, b:number): number;
+min(a:number,b:number): number;
 
-NumberArr = number[];
-StringArr = string[];
+//NumberArr = number[];
+//StringArr = string[];
 
 sumNumbers(arr: NumberArr): number;
 concatStrings(arr: StringArr): string;
@@ -15,4 +17,7 @@ concatStrings(arr: StringArr): string;
 //}
 
 // Top-level statement:
-print("This code runs without an explicit main function!"): string;
+print(24):number ;
+print(abs(0.5)):number;
+print(max(1,10)):number;
+print(min(0,5)):number;

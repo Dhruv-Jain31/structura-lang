@@ -1,8 +1,6 @@
 (function() {
 const stdlib = require("../src/runtime/stdlib");
 
-// Type alias: NumberArr = [object Object]
-// Type alias: StringArr = [object Object]
 
 function abs(a) {
   return stdlib.abs(...arguments);
@@ -10,6 +8,14 @@ function abs(a) {
 
 function print(msg) {
   return stdlib.print(...arguments);
+}
+
+function max(a, b) {
+  return stdlib.max(...arguments);
+}
+
+function min(a, b) {
+  return stdlib.min(...arguments);
 }
 
 function sumNumbers(arr) {
@@ -21,6 +27,8 @@ function concatStrings(arr) {
 }
 
 // Top-level statements:
-print("This code runs without an explicit main function!");
-abs(0.5);
+print(24);
+print(abs(0.5));
+print(max(1, 10));
+print(min(0, 5));
 })();

@@ -4,19 +4,41 @@ class TypeChecker {
     this.ast = ast;
     this.typeAliases = {}; // Symbol table for type aliases.
     // Predefined function signatures for built‑in functions.
+    // These signatures tell the type checker that these functions are built-in and don't need a body.
     this.functionSignatures = {
       abs: {
         parameters: [{ kind: "primitive", name: "number" }],
         returnType: { kind: "primitive", name: "number" }
       },
-      print: { variadic: true },
+      min: {
+        parameters: [
+          { kind: "primitive", name: "number" },
+          { kind: "primitive", name: "number" }
+        ],
+        returnType: { kind: "primitive", name: "number" }
+      },
+      max: {
+        parameters: [
+          { kind: "primitive", name: "number" },
+          { kind: "primitive", name: "number" }
+        ],
+        returnType: { kind: "primitive", name: "number" }
+      },
       push: {
-        parameters: [{ kind: "primitive", name: "any" }, { kind: "primitive", name: "number" }],
+        parameters: [
+          { kind: "array", elementType: { kind: "primitive", name: "any" } },
+          { kind: "primitive", name: "any" }
+        ],
         returnType: { kind: "primitive", name: "number" }
       },
       pop: {
-        parameters: [{ kind: "primitive", name: "any" }],
+        parameters: [{ kind: "array", elementType: { kind: "primitive", name: "any" } }],
         returnType: { kind: "primitive", name: "any" }
+      },
+      print: {
+        variadic: true,
+        // 'print' prints to the console and doesn't return a value.
+        returnType: { kind: "primitive", name: "void" }
       },
       sumNumbers: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "number" } }],
@@ -25,23 +47,8 @@ class TypeChecker {
       concatStrings: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "string" } }],
         returnType: { kind: "primitive", name: "string" }
-      },
-      processMixed: {
-        parameters: [{
-          kind: "union",
-          types: [
-            { kind: "primitive", name: "string" },
-            { kind: "array", elementType: { kind: "primitive", name: "number" } }
-          ]
-        }],
-        returnType: { 
-          kind: "union",
-          types: [
-            { kind: "primitive", name: "string" },
-            { kind: "primitive", name: "number" }
-          ]
-        }
       }
+      // Add any additional built-in functions here as needed.
     };
   }
 
@@ -74,10 +81,10 @@ class TypeChecker {
     return [resolved];
   }
 
-  // getArgType now accepts a context mapping identifiers to types.
+  // getArgType accepts a context mapping identifiers to types.
   getArgType(arg, context = {}) {
     if (arg.type === "Parameter") {
-      // When encountering a Parameter node, return its declared type.
+      // For Parameter nodes, return the declared type.
       if (!arg.paramType) {
         throw new Error(`Parameter node for '${arg.name}' is missing its type annotation.`);
       }
@@ -141,6 +148,7 @@ class TypeChecker {
 
   checkFunction(funcNode) {
     const funcName = funcNode.name;
+    // If the function is built-in, use its signature.
     if (this.functionSignatures.hasOwnProperty(funcName)) {
       const expected = this.functionSignatures[funcName];
       if (funcName === "print") {
@@ -172,7 +180,7 @@ class TypeChecker {
         );
       }
     } else {
-      // For user-defined functions, check the body.
+      // For user-defined functions, ensure a body exists.
       if (!funcNode.body) {
         throw new Error(`User-defined function '${funcName}' must have a body.`);
       }

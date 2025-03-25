@@ -4,7 +4,7 @@ class Lexer {
     this.code = code;
     this.tokens = [];
     this.position = 0;
-    this.line = 0; // Start at line 1
+    this.line = 1; // Start at line 1
   }
 
   // Updated token patterns:
@@ -13,21 +13,24 @@ class Lexer {
     { type: "COMMENT", regex: /\/\/[^\n]*/, ignore: true },           // single-line comments
     { type: "COMMENT", regex: /\/\*[\s\S]*?\*\//, ignore: true },        // multi-line comments
     {
+      // Updated KEYWORD regex to include additional keywords for control flow and variable declarations.
       type: "KEYWORD",
-      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return)\b/
+      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return|for|while|if|else|let)\b/
     },
     {
       // TYPE regex supports basic types, optional array brackets, and unions.
+      // Allows square brackets with any characters except ']'.
       type: "TYPE",
-      regex: /(?:number|string|boolean|void|any)(?:\[\])*(?:\|(?:number|string|boolean|void|any)(?:\[\])*)*/
+      regex: /\b(?:number|string|boolean|void|any)(?:\[[^\]]*\])*(?:\|(?:number|string|boolean|void|any)(?:\[[^\]]*\])*)*\b/
     },
     {
       type: "IDENTIFIER",
       regex: /\b[a-zA-Z_][a-zA-Z0-9_]*\b/
     },
     {
+      // Allow an optional minus sign before a number.
       type: "NUMBER_LITERAL",
-      regex: /\b\d+(\.\d+)?\b/
+      regex: /-?\d+(\.\d+)?/
     },
     {
       // Combined regex for double or single quoted strings.
@@ -35,9 +38,9 @@ class Lexer {
       regex: /(?:"([^"]*)"|'([^']*)')/
     },
     {
-      // Updated SYMBOL pattern to include curly braces.
+      // SYMBOL pattern now includes square brackets.
       type: "SYMBOL",
-      regex: /[(){}:,;=]/
+      regex: /[()\[\]{}:,;=]/
     },
     // Multi-character operators
     {
@@ -65,7 +68,7 @@ class Lexer {
         if (result && result.index === 0) {
           const value = result[0];
 
-          // Always update the line counter, even for ignored tokens.
+          // Update line counter.
           if (value.includes("\n")) {
             this.line += value.split("\n").length - 1;
           }
@@ -86,7 +89,8 @@ class Lexer {
       }
     }
 
-    // Merge ":" and following TYPE into a RETURN_TYPE token.
+    // The lexer merges ":" and the following TYPE token into a RETURN_TYPE token
+    // when the colon follows a ")".
     const processedTokens = [];
     for (let i = 0; i < this.tokens.length; i++) {
       const token = this.tokens[i];
@@ -95,7 +99,7 @@ class Lexer {
         i > 0 &&
         this.tokens[i - 1].type === "SYMBOL" && this.tokens[i - 1].value === ")" &&
         i + 1 < this.tokens.length &&
-        this.tokens[i + 1].type === "TYPE"
+        (this.tokens[i + 1].type === "TYPE" || this.tokens[i + 1].type === "IDENTIFIER") // Handle aliases
       ) {
         processedTokens.push({ type: "RETURN_TYPE", value: this.tokens[i + 1].value, line: this.tokens[i + 1].line });
         i++; // Skip the TYPE token.
