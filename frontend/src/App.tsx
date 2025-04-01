@@ -1,11 +1,27 @@
 // src/App.tsx
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Features } from './components/Features';
 import { Playground } from './components/Playground';
 import { Install } from './components/Install';
 import { Footer } from './components/Footer';
+import Documentation from './components/Documentation';
+
+// Landing page that bundles all sections
+function LandingPage({ isDarkMode, toggleDarkMode }) {
+  return (
+    <>
+      <Navbar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+      <Hero />
+      <Features />
+      <Playground />
+      <Install />
+      <Footer />
+    </>
+  );
+}
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -25,14 +41,15 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors`}>
-      <Navbar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
-      <Hero />
-      <Features />
-      <Playground />
-      <Install />
-      <Footer />
-    </div>
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={<LandingPage isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />}
+        />
+        <Route path="/documentation" element={<Documentation />} />
+      </Routes>
+    </Router>
   );
 }
 

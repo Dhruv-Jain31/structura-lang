@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sun, Moon, Github } from 'lucide-react';
+import React from "react";
+import { Sun, Moon, Github } from "lucide-react";
 
 interface NavbarProps {
   isDarkMode: boolean;
@@ -16,11 +16,26 @@ export function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
               Structura
             </span>
           </div>
-          
+
           <div className="flex items-center space-x-6">
-            <a href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</a>
-            <a href="#playground" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Playground</a>
-            <a href="#install" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Install</a>
+            <a
+              href="#features"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Features
+            </a>
+            <a
+              href="#playground"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Playground
+            </a>
+            <a
+              href="#install"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Install
+            </a>
             <a
               href="https://github.com/Dhruv-Jain31/structura-lang"
               target="_blank"
