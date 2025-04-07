@@ -1,39 +1,15 @@
-// Built-in function declarations:
-abs(a: number): number;
-print(msg: any): void;
-max(a: number, b: number): number;
-min(a: number, b: number): number;
-
-// New built-in function declarations:
-hcf(a: number, b: number): number;
-lcm(a: number, b: number): number;
-capitalize(s: string): string;
-//string.slugify(s: string): string;
-isURL(input: string): boolean;
-coalesce(val1: any, val2: any, val3: any): any;
-
-// Optional type aliases (uncomment if desired):
-//NumberArr = number[];
-//StringArr = string[];
-
-// Additional built-in function declarations for array processing:
-//sumNumbers(arr: NumberArr): number;
-//concatStrings(arr: StringArr): string;
-
-// User-defined function:
-myFunc(a: number): number {
-    return a + 1;
-}
-
-// Top-level statements:
 print(4): void;
-print(abs(0.5)): number;
+print(abs(-0.5)): number;
 print(max(1, 10)): number;
 print(min(0, 5)): number;
 
 print(hcf(10, 5)): number;
 print(lcm(4, 6)): number;
 print(capitalize("hello")): string;
-//print("world".slugify()): string;
-print(isURL("https://example.com")): boolean;
+
+//print(isURL("https://example.com")): boolean;
 print(coalesce(0, null, "fallback")): any;
+
+//print(clamp(15, 5, 10)): number;
+//print(sqrt(9)): number;
+//print(reverse("Structura")): string;
