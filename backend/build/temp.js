@@ -2,33 +2,45 @@
 const stdlib = require("../src/runtime/stdlib");
 
 
-function abs(a) {
-  return stdlib.abs(...arguments);
-}
-
-function print(msg) {
+function print() {
   return stdlib.print(...arguments);
 }
 
-function max(a, b) {
+function abs() {
+  return stdlib.abs(...arguments);
+}
+
+function max() {
   return stdlib.max(...arguments);
 }
 
-function min(a, b) {
+function min() {
   return stdlib.min(...arguments);
 }
 
-function sumNumbers(arr) {
-  return stdlib.sumNumbers(...arguments);
+function hcf() {
+  return stdlib.hcf(...arguments);
 }
 
-function concatStrings(arr) {
-  return stdlib.concatStrings(...arguments);
+function lcm() {
+  return stdlib.lcm(...arguments);
+}
+
+function capitalize() {
+  return stdlib.capitalize(...arguments);
+}
+
+function coalesce() {
+  return stdlib.coalesce(...arguments);
 }
 
 // Top-level statements:
-print(24);
-print(abs(0.5));
+print(4);
+print(abs(-0.5));
 print(max(1, 10));
 print(min(0, 5));
+print(hcf(10, 5));
+print(lcm(4, 6));
+print(capitalize("hello"));
+print(coalesce(0, null, "fallback"));
 })();

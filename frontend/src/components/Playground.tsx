@@ -10,11 +10,12 @@ const sum = sumNumbers(numbers);
 print("Sum:", sum);`);
   
   const [result, setResult] = useState('');
-  const [resultType, setResultType] = useState<'tokens' | 'parseTree' | 'compiled' | null>(null);
+  // Extend the result type to include 'tac'
+  const [resultType, setResultType] = useState<'tokens' | 'parseTree' | 'compiled' | 'tac' | null>(null);
 
   const API_BASE_URL = 'http://localhost:5000/api';
 
-  const handleRun = async (endpoint: 'lexer' | 'parser' | 'ir' | 'run') => {
+  const handleRun = async (endpoint: 'lexer' | 'parser' | 'ir' | 'tac' | 'run') => {
     try {
       const response = await axios.post(`${API_BASE_URL}/${endpoint}`, { code });
       let output: string;
@@ -26,11 +27,13 @@ print("Sum:", sum);`);
         output = JSON.stringify(response.data, null, 2);
       }
       
-      // Set result type based on endpoint
+      // Set result type based on endpoint.
       if (endpoint === 'lexer') {
         setResultType('tokens');
       } else if (endpoint === 'parser') {
         setResultType('parseTree');
+      } else if (endpoint === 'tac') {
+        setResultType('tac');
       } else {
         setResultType('compiled');
       }
@@ -69,6 +72,12 @@ print("Sum:", sum);`);
                   className="inline-flex items-center px-3 py-1.5 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm"
                 >
                   IR Generation
+                </button>
+                <button
+                  onClick={() => handleRun("tac")}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-sm"
+                >
+                  TAC
                 </button>
                 <button
                   onClick={() => handleRun("run")}

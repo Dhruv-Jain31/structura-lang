@@ -11,7 +11,7 @@ const IROptimizer = require("./ir_optimizer.js");
 const IRCompiler = require("./ir_compiler.js");
 
 // Define the supported modes
-const supportedModes = ["lexer", "parse", "ir"];
+const supportedModes = ["lexer", "parse", "ir", "tac"];
 
 // Get command-line arguments
 const args = process.argv.slice(2);
@@ -39,6 +39,36 @@ if (path.extname(inputFile) !== ".struct") {
 // Read Structura source code from the input file
 const sourceCode = fs.readFileSync(inputFile, "utf-8");
 
+// Helper: Format IR to readable TAC
+function formatTAC(ir) {
+  let output = "Three-Address Code (TAC):\n";
+  let counter = 1;
+
+  for (const instr of ir) {
+    let line = "";
+    const temp = `t${counter}`;
+
+    if (instr.op === "assign") {
+      line = `${temp} := ${instr.value}`;
+    } else if (instr.op === "binary") {
+      line = `${temp} := ${instr.left} ${instr.operator} ${instr.right}`;
+    } else if (instr.op === "call") {
+      line = `${temp} := ${instr.callee}(${instr.args.join(", ")})`;
+    } else if (instr.op === "print") {
+      line = `${temp} := print(${instr.argument})`;
+    } else if (instr.op === "return") {
+      line = `${temp} := return ${instr.argument}`;
+    } else {
+      line = `${temp} := [unknown op: ${instr.op}]`;
+    }
+
+    output += `${line}\n(result: ${temp})\n`;
+    counter++;
+  }
+
+  return output;
+}
+
 // Run the requested mode in the compilation pipeline
 try {
   if (mode === "lexer") {
@@ -51,7 +81,7 @@ try {
     const parser = new Parser(tokens);
     const ast = parser.parse();
     console.log(ast);
-  } else if (mode === "ir") {
+  } else if (mode === "ir" || mode === "tac") {
     const lexer = new Lexer(sourceCode);
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens);
@@ -60,42 +90,40 @@ try {
     typeChecker.check();
     const ir = IRGenerator.generate(ast);
     const optimizedIR = IROptimizer.optimize(ir, true);
-    console.log(optimizedIR);
+
+    if (mode === "ir") {
+      console.log(optimizedIR);
+    } else {
+      const formatted = formatTAC(optimizedIR);
+      console.log(formatted);
+    }
   } else { // Full pipeline (run mode)
-    // Lexing
     const lexer = new Lexer(sourceCode);
     const tokens = lexer.tokenize();
     console.log("Tokens:");
     console.log(tokens);
 
-    // Parsing
     const parser = new Parser(tokens);
     const ast = parser.parse();
     console.log("AST:");
     console.log(ast);
 
-    // Type Checking
     const typeChecker = new TypeChecker(ast);
     typeChecker.check();
 
-    // IR Generation & Optimization
     const ir = IRGenerator.generate(ast);
     const optimizedIR = IROptimizer.optimize(ir, true);
 
-    // Compile IR to final JavaScript code
     const finalJS = IRCompiler.compile(optimizedIR);
 
-    // Create the build folder if it doesn't exist
     const buildDir = path.join(__dirname, "..", "build");
     if (!fs.existsSync(buildDir)) {
       fs.mkdirSync(buildDir);
     }
 
-    // Determine the output filename based on the input filename
     const baseName = path.basename(inputFile, ".struct");
     const outputFile = path.join(buildDir, `${baseName}.js`);
 
-    // Write the final JavaScript code to the output file
     fs.writeFileSync(outputFile, finalJS, "utf-8");
     console.log(`Compilation successful! Output written to ${outputFile}`);
   }

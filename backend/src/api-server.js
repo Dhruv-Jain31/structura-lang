@@ -76,6 +76,20 @@ app.post('/api/ir', async (req, res) => {
   }
 });
 
+// Endpoint to get TAC (Three Address Code)
+app.post('/api/tac', async (req, res) => {
+  const { code } = req.body;
+  try {
+    saveCodeToFile(code);
+    const command = `node ${path.join(__dirname, 'cli.js')} tac ${tempFilePath}`;
+    const output = await runCommand(command);
+    res.json({ output });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+});
+
+
 // Endpoint for full execution: run the complete pipeline (using index.js)
 app.post('/api/run', async (req, res) => {
   const { code } = req.body;

@@ -2,16 +2,17 @@ import React from 'react';
 
 interface OutputDisplayProps {
   output: string;
-  type: 'tokens' | 'parseTree' | 'compiled' | null;
+  type: 'tokens' | 'parseTree' | 'compiled' | 'tac' | null;
 }
 
 export function OutputDisplay({ output, type }: OutputDisplayProps) {
   if (!type || !output) return null;
 
-  const titles = {
+  const titles: { [key: string]: string } = {
     tokens: 'Tokens',
     parseTree: 'Parse Tree',
-    compiled: 'Compiled Output'
+    compiled: 'Compiled Output',
+    tac: 'Three-Address Code'
   };
 
   return (
