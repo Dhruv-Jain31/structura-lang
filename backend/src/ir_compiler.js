@@ -46,8 +46,8 @@ class IRCompiler {
       }
     }
 
-    // Automatically add built-in function declarations if missing.
-    const reservedBuiltins = [
+    // Determine which built-in functions are used by traversing the IR.
+    const reservedBuiltins = new Set([
       "abs",
       "print",
       "max",
@@ -58,15 +58,62 @@ class IRCompiler {
       "isURL",
       "coalesce",
       "slugify"
-    ];
-    for (const builtin of reservedBuiltins) {
+    ]);
+    const usedBuiltins = new Set();
+    // Recursive function to traverse IR nodes.
+    function traverseIR(node) {
+      if (!node) return;
+      switch (node.op) {
+        case "call_expression":
+          // If the callee is a variable and its name is a reserved built-in, record it.
+          if (node.callee && node.callee.op === "variable" && reservedBuiltins.has(node.callee.name)) {
+            usedBuiltins.add(node.callee.name);
+          }
+          // Traverse callee and arguments.
+          traverseIR(node.callee);
+          for (const arg of node.arguments) {
+            traverseIR(arg);
+          }
+          break;
+        case "binary_expression":
+          traverseIR(node.left);
+          traverseIR(node.right);
+          break;
+        case "expression_statement":
+          traverseIR(node.expression);
+          break;
+        // For literals and variables, nothing to do.
+        case "literal":
+        case "variable":
+          break;
+        case "member_expression":
+          traverseIR(node.object);
+          traverseIR(node.property);
+          break;
+        default:
+          // For any other node types, if they have nested nodes, traverse them.
+          for (const key in node) {
+            if (node[key] && typeof node[key] === "object") {
+              traverseIR(node[key]);
+            }
+          }
+      }
+    }
+
+    // Traverse top-level IR nodes.
+    for (const node of ir) {
+      traverseIR(node);
+    }
+
+    // Only add built-in function declarations for those that are used.
+    for (const builtin of usedBuiltins) {
       if (!functionsMap.has(builtin)) {
         functionsMap.set(builtin, {
           op: "function_decl",
           name: builtin,
           parameters: [],
           returnType: { kind: "primitive", name: "any" },
-          builtin: true // tag as built-in
+          builtin: true
         });
       }
     }

@@ -1,0 +1,3 @@
+print(hcf(10, 5)): number;
+print(lcm(4, 6)): number;
+print(capitalize("hello")): string;
