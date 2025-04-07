@@ -1,6 +1,21 @@
 // parser.js
 const Lexer = require("./lexer.js");
 
+// Reserved built-in function names that cannot be re-declared by the user.
+const RESERVED_BUILTINS = [
+  "abs",
+  "print",
+  "max",
+  "min",
+  "hcf",
+  "lcm",
+  "capitalize",
+  "isURL",
+  "coalesce",
+  "slugify",
+  // Optionally include other built-ins if needed.
+];
+
 // Operator precedence mapping (for binary expressions)
 const PRECEDENCE = {
   "||": 1,
@@ -137,17 +152,22 @@ class Parser {
     }
   }
 
-  // Parse a function declaration. In declarations, parameters are parsed as Parameter nodes.
+  // Parse a function declaration.
   parseFunction() {
     const funcNameToken = this.consumeAny(["KEYWORD", "IDENTIFIER"]);
     const funcName = funcNameToken.value;
     const funcLine = funcNameToken.line;
 
+    // Check against reserved built-in names.
+    if (RESERVED_BUILTINS.includes(funcName)) {
+      throw new Error(`Cannot override built-in function '${funcName}' at line ${funcNameToken.line}.`);
+    }
+
     this.consume("SYMBOL", "(");
     const args = this.parseArguments(true); // parameter context = true
     this.consume("SYMBOL", ")");
-
-    // Lexer merges ":" and TYPE into a RETURN_TYPE token.
+    
+    // Lexer merges ":" and TYPE/IDENTIFIER into a RETURN_TYPE token.
     const returnTypeToken = this.consume("RETURN_TYPE");
     const returnType = this.parseTypeAnnotationFromString(returnTypeToken.value);
 
@@ -226,7 +246,7 @@ class Parser {
     return this.parseBinaryExpression(0);
   }
 
-  // Updated parsePrimary to support nested call expressions.
+  // parsePrimary is updated to support member access and nested call expressions.
   parsePrimary() {
     let expr;
     const token = this.peek();
@@ -244,19 +264,36 @@ class Parser {
       throw new Error(`Unexpected token in primary expression: ${token.type} (${token.value}) at line ${token.line}`);
     }
 
-    // Support for nested call expressions.
-    while (this.peek().value === "(") {
-      this.consume("SYMBOL", "(");
-      const args = this.parseArguments(false); // always expression context in a call
-      this.consume("SYMBOL", ")");
-      expr = {
-        type: "CallExpression",
-        callee: expr,
-        arguments: args,
-        line: expr.line
-      };
+    // Support for member access and nested call expressions.
+    while (true) {
+      const next = this.peek();
+      // Member access: handle dot operator.
+      if (next.value === ".") {
+        this.consume("SYMBOL", ".");
+        const propertyToken = this.consume("IDENTIFIER");
+        expr = {
+          type: "MemberExpression",
+          object: expr,
+          property: { type: "Identifier", name: propertyToken.value, line: propertyToken.line },
+          line: propertyToken.line
+        };
+        continue;
+      }
+      // Function call (either on the original identifier or as a result of member access)
+      if (next.value === "(") {
+        this.consume("SYMBOL", "(");
+        const args = this.parseArguments(false); // expression context for call arguments
+        this.consume("SYMBOL", ")");
+        expr = {
+          type: "CallExpression",
+          callee: expr,
+          arguments: args,
+          line: expr.line
+        };
+        continue;
+      }
+      break;
     }
-
     return expr;
   }
 

@@ -12,14 +12,18 @@ class Lexer {
     // Comments (ignored)
     { type: "COMMENT", regex: /\/\/[^\n]*/, ignore: true },           // single-line comments
     { type: "COMMENT", regex: /\/\*[\s\S]*?\*\//, ignore: true },        // multi-line comments
+
+    // KEYWORD regex now includes all built-in functions.
+    // These built-in functions (e.g., abs, print, max, min, hcf, lcm, capitalize, isURL, coalesce, slugify)
+    // are reserved and cannot be re-declared by the user.
     {
-      // Updated KEYWORD regex to include additional keywords for control flow and variable declarations.
       type: "KEYWORD",
-      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return|for|while|if|else|let)\b/
+      regex: /\b(min|max|print|len|reverse|abs|sqrt|sum|push|pop|toUpperCase|toLowerCase|substring|replace|includes|clamp|startsWith|endsWith|unique|range|return|for|while|if|else|let|hcf|lcm|capitalize|isURL|coalesce|slugify)\b/
     },
+
+    // TYPE regex supports basic types, optional array brackets, and unions.
+    // Allows square brackets with any characters except ']' and unions.
     {
-      // TYPE regex supports basic types, optional array brackets, and unions.
-      // Allows square brackets with any characters except ']'.
       type: "TYPE",
       regex: /\b(?:number|string|boolean|void|any)(?:\[[^\]]*\])*(?:\|(?:number|string|boolean|void|any)(?:\[[^\]]*\])*)*\b/
     },
@@ -38,9 +42,9 @@ class Lexer {
       regex: /(?:"([^"]*)"|'([^']*)')/
     },
     {
-      // SYMBOL pattern now includes square brackets.
+      // SYMBOL pattern now includes the dot operator '.' for method calls.
       type: "SYMBOL",
-      regex: /[()\[\]{}:,;=]/
+      regex: /[()\[\]{}:,;=.]/  // Added dot (.) to the set.
     },
     // Multi-character operators
     {
@@ -89,7 +93,7 @@ class Lexer {
       }
     }
 
-    // The lexer merges ":" and the following TYPE token into a RETURN_TYPE token
+    // Merge ":" and the following TYPE/IDENTIFIER token into a RETURN_TYPE token
     // when the colon follows a ")".
     const processedTokens = [];
     for (let i = 0; i < this.tokens.length; i++) {
@@ -102,7 +106,7 @@ class Lexer {
         (this.tokens[i + 1].type === "TYPE" || this.tokens[i + 1].type === "IDENTIFIER") // Handle aliases
       ) {
         processedTokens.push({ type: "RETURN_TYPE", value: this.tokens[i + 1].value, line: this.tokens[i + 1].line });
-        i++; // Skip the TYPE token.
+        i++; // Skip the TYPE/IDENTIFIER token.
       } else {
         processedTokens.push(token);
       }

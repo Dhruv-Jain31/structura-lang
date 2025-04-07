@@ -35,10 +35,10 @@ class TypeChecker {
         returnType: { kind: "primitive", name: "any" }
       },
       print: {
-        // If no user declaration is given, these are the fallback types.
+        // Updated built-in: returns 'any' so that both print(4): any and print(...): number pass.
         variadic: true,
         parameters: [{ kind: "primitive", name: "any" }],
-        returnType: { kind: "primitive", name: "void" }
+        returnType: { kind: "primitive", name: "any" }
       },
       sumNumbers: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "number" } }],
@@ -47,12 +47,47 @@ class TypeChecker {
       concatStrings: {
         parameters: [{ kind: "array", elementType: { kind: "primitive", name: "string" } }],
         returnType: { kind: "primitive", name: "string" }
+      },
+      // New built-in functions:
+      hcf: {
+        parameters: [
+          { kind: "primitive", name: "number" },
+          { kind: "primitive", name: "number" }
+        ],
+        returnType: { kind: "primitive", name: "number" }
+      },
+      lcm: {
+        parameters: [
+          { kind: "primitive", name: "number" },
+          { kind: "primitive", name: "number" }
+        ],
+        returnType: { kind: "primitive", name: "number" }
+      },
+      capitalize: {
+        parameters: [{ kind: "primitive", name: "string" }],
+        returnType: { kind: "primitive", name: "string" }
+      },
+      slugify: {
+        parameters: [{ kind: "primitive", name: "string" }],
+        returnType: { kind: "primitive", name: "string" }
+      },
+      coalesce: {
+        parameters: [
+          { kind: "primitive", name: "any" },
+          { kind: "primitive", name: "any" },
+          { kind: "primitive", name: "any" }
+        ],
+        returnType: { kind: "primitive", name: "any" }
+      },
+      isURL: {
+        parameters: [{ kind: "primitive", name: "string" }],
+        returnType: { kind: "primitive", name: "boolean" }
       }
       // Add more built-in functions as needed.
     };
 
     // Table for user-declared function signatures (from FunctionDeclaration nodes).
-    // When a function is declared in the source, its signature overrides the built-in.
+    // User-declared signatures should never override built-ins.
     this.userFunctionSignatures = {};
   }
 
@@ -112,6 +147,11 @@ class TypeChecker {
   typeEquals(typeA, typeB) {
     typeA = this.resolveType(typeA);
     typeB = this.resolveType(typeB);
+    
+    // If either type is 'any', consider them equal.
+    if (typeA.kind === "primitive" && typeA.name === "any") return true;
+    if (typeB.kind === "primitive" && typeB.name === "any") return true;
+    
     if (typeA.kind !== typeB.kind) return false;
     if (typeA.kind === "primitive") return typeA.name === typeB.name;
     if (typeA.kind === "array") return this.typeEquals(typeA.elementType, typeB.elementType);
@@ -124,22 +164,22 @@ class TypeChecker {
 
   // Main check: process type aliases and function declarations, then check calls.
   check() {
-    // First, process type aliases.
+    // Process type aliases.
     for (const node of this.ast) {
       if (node.type === "TypeAlias") {
         this.typeAliases[node.alias] = node.typeAnnotation;
       }
     }
-    // Next, collect user-declared function signatures.
+    // Collect user-declared function signatures.
     for (const node of this.ast) {
       if (node.type === "FunctionDeclaration") {
-        // Store the entire node so we can later extract parameter types and return type.
+        // Store the entire node for later reference.
         this.userFunctionSignatures[node.name] = node;
-        // Also check the function body if available.
+        // Check the function body if available.
         this.checkFunction(node);
       }
     }
-    // Finally, check top-level call expression statements.
+    // Check top-level call expression statements.
     for (const node of this.ast) {
       if (node.type === "ExpressionStatement") {
         this.checkExpressionStatement(node);
@@ -150,19 +190,14 @@ class TypeChecker {
   // Check a function declaration.
   checkFunction(funcNode) {
     const funcName = funcNode.name;
-    // Use the user-declared signature (since this is from the .struct file).
-    // Verify that parameter types in the declaration are well-formed.
+    // For user-defined functions, ensure at least one parameter exists.
     if (!funcNode.arguments || funcNode.arguments.length === 0) {
-      // For simplicity, assume functions must have at least one parameter.
-      // (Adjust this logic if zero-parameter functions are allowed.)
       throw new Error(`Function '${funcName}' must have at least one parameter.`);
     }
     funcNode.arguments.forEach((arg, index) => {
-      const declaredType = this.getArgType(arg);
-      // (Additional parameter checks can go here if needed.)
+      this.getArgType(arg); // Additional parameter checks can be added here.
     });
-    // For user-defined functions with a body, check that the return type inferred from the first return statement
-    // matches the declared return type.
+    // For functions with a body, check that the inferred return type matches the declared return type.
     if (funcNode.body) {
       const context = {};
       funcNode.arguments.forEach(param => {
@@ -191,25 +226,37 @@ class TypeChecker {
   // Check top-level call expression statements.
   checkExpressionStatement(stmt) {
     if (stmt.expression.type === "CallExpression") {
-      const funcName = stmt.expression.callee.name;
-      // Look up the function signature in user-declared signatures first.
+      const callee = stmt.expression.callee;
+      let funcName;
+      // Support both Identifier and MemberExpression.
+      if (callee.type === "Identifier") {
+        funcName = callee.name;
+      } else if (callee.type === "MemberExpression") {
+        funcName = callee.property.name;
+      } else {
+        throw new Error(`Unsupported callee type: ${callee.type}`);
+      }
+
       let signature;
-      if (this.userFunctionSignatures.hasOwnProperty(funcName)) {
+      // Always use the built-in signature if it exists.
+      if (this.builtinSignatures.hasOwnProperty(funcName)) {
+        signature = this.builtinSignatures[funcName];
+      } else if (this.userFunctionSignatures.hasOwnProperty(funcName)) {
         const funcDecl = this.userFunctionSignatures[funcName];
-        // Build a signature object from the declaration.
         signature = {
           parameters: funcDecl.arguments.map(arg => this.getArgType(arg)),
           returnType: funcDecl.returnType
         };
-      } else if (this.builtinSignatures.hasOwnProperty(funcName)) {
-        signature = this.builtinSignatures[funcName];
       } else {
         throw new Error(`Function '${funcName}' is not declared.`);
       }
-      // Check that the argument types match.
+      
+      // Check that argument counts match.
       if (signature.parameters.length !== stmt.expression.arguments.length) {
         throw new Error(`Function '${funcName}' expects ${signature.parameters.length} parameter(s) but got ${stmt.expression.arguments.length}.`);
       }
+      
+      // Check each argument type.
       stmt.expression.arguments.forEach((arg, index) => {
         const argType = this.getArgType(arg);
         if (!this.typeEquals(argType, signature.parameters[index])) {
@@ -218,7 +265,19 @@ class TypeChecker {
           );
         }
       });
-      // Now check that the declared return type on the call matches the signature.
+      
+      // Special check for isURL: if the argument is a string literal, validate the URL.
+      if (funcName === "isURL") {
+        const arg0 = stmt.expression.arguments[0];
+        if (arg0.type === "StringLiteral") {
+          const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+          if (!urlRegex.test(arg0.value)) {
+            throw new Error(`Invalid URL provided to isURL: ${arg0.value}`);
+          }
+        }
+      }
+      
+      // Check that the declared return type on the call matches the signature.
       if (!this.typeEquals(signature.returnType, stmt.returnType)) {
         const argTypes = stmt.expression.arguments
           .map(arg => this.getArgType(arg).name)
@@ -234,19 +293,24 @@ class TypeChecker {
 
   // Infer the type of a call expression.
   inferCallExpression(callExpr) {
-    if (callExpr.callee.type !== "Identifier") {
+    let funcName;
+    if (callExpr.callee.type === "Identifier") {
+      funcName = callExpr.callee.name;
+    } else if (callExpr.callee.type === "MemberExpression") {
+      funcName = callExpr.callee.property.name;
+    } else {
       throw new Error("Unsupported callee type in call expression.");
     }
-    const funcName = callExpr.callee.name;
+
     let signature;
-    if (this.userFunctionSignatures.hasOwnProperty(funcName)) {
+    if (this.builtinSignatures.hasOwnProperty(funcName)) {
+      signature = this.builtinSignatures[funcName];
+    } else if (this.userFunctionSignatures.hasOwnProperty(funcName)) {
       const funcDecl = this.userFunctionSignatures[funcName];
       signature = {
         parameters: funcDecl.arguments.map(arg => this.getArgType(arg)),
         returnType: funcDecl.returnType
       };
-    } else if (this.builtinSignatures.hasOwnProperty(funcName)) {
-      signature = this.builtinSignatures[funcName];
     } else {
       throw new Error(`Function '${funcName}' not found in function signatures.`);
     }
@@ -261,6 +325,16 @@ class TypeChecker {
         );
       }
     });
+    // Special check for isURL.
+    if (funcName === "isURL") {
+      const arg0 = callExpr.arguments[0];
+      if (arg0.type === "StringLiteral") {
+        const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+        if (!urlRegex.test(arg0.value)) {
+          throw new Error(`Invalid URL provided to isURL: ${arg0.value}`);
+        }
+      }
+    }
     return signature.returnType;
   }
 }

@@ -1,6 +1,6 @@
 // ir_generator.js
 class IRGenerator {
-  // Generate IR from AST
+  // Generate IR from AST.
   static generate(ast) {
     const ir = [];
     for (const node of ast) {
@@ -80,11 +80,26 @@ class IRGenerator {
           left: IRGenerator.generateExpressionIR(expr.left),
           right: IRGenerator.generateExpressionIR(expr.right)
         };
-      case "CallExpression":
-        return {
+      case "CallExpression": {
+        const callIR = {
           op: "call_expression",
           callee: IRGenerator.generateExpressionIR(expr.callee),
           arguments: expr.arguments.map(arg => IRGenerator.generateExpressionIR(arg))
+        };
+        // Annotate if the call is to a reserved built-in.
+        if (
+          expr.callee.type === "Identifier" &&
+          ["abs", "print", "max", "min", "hcf", "lcm", "capitalize", "isURL", "coalesce", "slugify"].includes(expr.callee.name)
+        ) {
+          callIR.builtin = true;
+        }
+        return callIR;
+      }
+      case "MemberExpression":
+        return {
+          op: "member_expression",
+          object: IRGenerator.generateExpressionIR(expr.object),
+          property: IRGenerator.generateExpressionIR(expr.property)
         };
       default:
         throw new Error(`Unsupported expression type: ${expr.type}`);

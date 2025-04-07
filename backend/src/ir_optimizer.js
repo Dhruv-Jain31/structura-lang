@@ -2,13 +2,17 @@
 class IROptimizer {
   /**
    * Optimize the given IR.
-   * Currently, this function traverses IR instructions.
-   * For function declarations with a body, it optimizes each statement.
+   * For function declarations, if no body exists, mark them as built-in.
    */
   static optimize(ir) {
     return ir.map(instr => {
-      if (instr.op === "function_decl" && instr.body) {
-        instr.body = IROptimizer.optimizeStatements(instr.body);
+      if (instr.op === "function_decl") {
+        if (instr.body && instr.body.length > 0) {
+          instr.body = IROptimizer.optimizeStatements(instr.body);
+        } else {
+          // Tag as built-in if no body is provided.
+          instr.builtin = true;
+        }
       }
       // Additional IR node optimizations (e.g., type_alias nodes) can be added here.
       return instr;
@@ -17,11 +21,11 @@ class IROptimizer {
 
   /**
    * Optimize a list of statements.
-   * Currently, we only optimize ReturnStatements.
+   * Currently, we optimize return statements and expression statements.
    */
   static optimizeStatements(statements) {
     return statements.map(stmt => {
-      if (stmt.op === "return_statement") {
+      if (stmt.op === "return_statement" || stmt.op === "expression_statement") {
         stmt.expression = IROptimizer.optimizeExpression(stmt.expression);
       }
       // Extend here for other statement types if needed.
@@ -31,16 +35,17 @@ class IROptimizer {
 
   /**
    * Optimize an expression.
-   * If the expression is a BinaryExpression and both sides are literals,
-   * constant folding is applied.
+   * If the expression is a binary_expression and both sides are literals,
+   * constant folding is applied. For call_expressions, constant folding is
+   * skipped if the 'builtin' flag is set to true.
    */
   static optimizeExpression(expr) {
-    if (expr.type === "BinaryExpression") {
+    if (expr.op === "binary_expression") {
       // Recursively optimize left and right subexpressions.
       const left = IROptimizer.optimizeExpression(expr.left);
       const right = IROptimizer.optimizeExpression(expr.right);
 
-      // If both subexpressions are literal, we can evaluate the expression.
+      // If both subexpressions are literals, we can evaluate the expression.
       if (left.op === "literal" && right.op === "literal") {
         // Handle numeric addition.
         if (expr.operator === "+") {
@@ -56,8 +61,17 @@ class IROptimizer {
       }
       // Return a new binary expression with optimized children.
       return { ...expr, left, right };
+    } else if (expr.op === "call_expression") {
+      // Skip optimization for built-in function calls.
+      if (expr.builtin) {
+        return expr;
+      }
+      // Otherwise, optimize the callee and arguments.
+      const callee = IROptimizer.optimizeExpression(expr.callee);
+      const args = expr.arguments.map(arg => IROptimizer.optimizeExpression(arg));
+      return { ...expr, callee, arguments: args };
     }
-    // For non-binary expressions, return as is.
+    // For other expression types, return as is.
     return expr;
   }
 }

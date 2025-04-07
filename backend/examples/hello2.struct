@@ -1,0 +1,15 @@
+print(4): void;
+print(abs(-0.5)): number;
+print(max(1, 10)): number;
+print(min(0, 5)): number;
+
+print(hcf(10, 5)): number;
+print(lcm(4, 6)): number;
+print(capitalize("hello")): string;
+
+//print(isURL("https://example.com")): boolean;
+print(coalesce(0, null, "fallback")): any;
+
+//print(clamp(15, 5, 10)): number;
+//print(sqrt(9)): number;
+//print(reverse("Structura")): string;

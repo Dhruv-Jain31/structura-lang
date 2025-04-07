@@ -1,23 +1,39 @@
-// hello.struct
-
+// Built-in function declarations:
 abs(a: number): number;
-print(msg: number): number;
-max(a:number, b:number): number;
-min(a:number,b:number): number;
+print(msg: any): void;
+max(a: number, b: number): number;
+min(a: number, b: number): number;
 
-//NumberArr = number[];
-//StringArr = string[];
+// New built-in function declarations:
+hcf(a: number, b: number): number;
+lcm(a: number, b: number): number;
+capitalize(s: string): string;
+// string.slugify(s: string): string;
+isURL(input: string): boolean;
+coalesce(val1: any, val2: any, val3: any): any;
 
-//sumNumbers(arr: NumberArr): number;
-//concatStrings(arr: StringArr): string;
+// Optional type aliases (uncomment if desired):
+// NumberArr = number[];
+// StringArr = string[];
+
+// Additional built-in function declarations for array processing:
+// sumNumbers(arr: NumberArr): number;
+// concatStrings(arr: StringArr): string;
 
 // User-defined function:
-//myFunc(a: number): number {
-//    return a + 1;
-//}
+myFunc(a: number): number {
+    return a + 1;
+}
 
-// Top-level statement:
-print(4):number ;
-print(abs(0.5)):number;
-print(max(1,10)):number;
-print(min(0,5)):number;
+// Top-level statements:
+print(4): number;
+print(abs(0.5)): number;
+print(max(1, 10)): number;
+print(min(0, 5)): number;
+
+//print(hcf(10, 5));
+//print(lcm(4, 6));
+//print(capitalize("hello"));
+// print("world".slugify());
+//print(isURL("https://example.com"));
+//print(coalesce(0, null, "fallback"));

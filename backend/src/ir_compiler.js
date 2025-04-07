@@ -24,7 +24,11 @@ class IRCompiler {
         case "function_decl":
           if (functionsMap.has(node.name)) {
             const existing = functionsMap.get(node.name);
-            if (node.body && node.body.length > 0 && (!existing.body || existing.body.length === 0)) {
+            if (
+              node.body &&
+              node.body.length > 0 &&
+              (!existing.body || existing.body.length === 0)
+            ) {
               functionsMap.set(node.name, node);
             }
           } else {
@@ -42,9 +46,36 @@ class IRCompiler {
       }
     }
 
+    // Automatically add built-in function declarations if missing.
+    const reservedBuiltins = [
+      "abs",
+      "print",
+      "max",
+      "min",
+      "hcf",
+      "lcm",
+      "capitalize",
+      "isURL",
+      "coalesce",
+      "slugify"
+    ];
+    for (const builtin of reservedBuiltins) {
+      if (!functionsMap.has(builtin)) {
+        functionsMap.set(builtin, {
+          op: "function_decl",
+          name: builtin,
+          parameters: [],
+          returnType: { kind: "primitive", name: "any" },
+          builtin: true // tag as built-in
+        });
+      }
+    }
+
     // Emit type aliases as comments.
     for (const aliasNode of typeAliases) {
-      output += `// Type alias: ${aliasNode.alias} = ${this.typeToString(aliasNode.typeAnnotation)}\n`;
+      output += `// Type alias: ${aliasNode.alias} = ${this.typeToString(
+        aliasNode.typeAnnotation
+      )}\n`;
     }
     output += "\n";
 
@@ -73,17 +104,19 @@ class IRCompiler {
   static compileFunction(node) {
     const params = node.parameters.map(p => p.name).join(", ");
     let code = `function ${node.name}(${params}) {`;
-    
+
     if (node.body && node.body.length > 0) {
-      // Compile each statement in the function body.
       for (const stmt of node.body) {
         code += "\n  " + this.compileStatement(stmt);
       }
-    } else {
-      // Built-in function: forward all arguments.
+    } else if (node.builtin) {
+      // Explicit built-in function forwarding.
       code += `\n  return stdlib.${node.name}(...arguments);`;
+    } else {
+      // No body and not marked as built-in — throw a warning.
+      code += `\n  throw new Error("Function ${node.name} has no body and is not a built-in.");`;
     }
-    
+
     code += "\n}";
     return code;
   }
@@ -109,7 +142,9 @@ class IRCompiler {
   static compileExpression(expr) {
     switch (expr.op) {
       case "literal":
-        return typeof expr.value === "string" ? JSON.stringify(expr.value) : expr.value;
+        return typeof expr.value === "string"
+          ? JSON.stringify(expr.value)
+          : expr.value;
       case "variable":
         return expr.name;
       case "binary_expression":
@@ -127,6 +162,12 @@ class IRCompiler {
           expr.arguments.map(arg => this.compileExpression(arg)).join(", ") +
           ")"
         );
+      case "member_expression":
+        return (
+          this.compileExpression(expr.object) +
+          "." +
+          this.compileExpression(expr.property)
+        );
       default:
         console.warn("IRCompiler: Unhandled expression op: " + expr.op);
         return "";
@@ -137,7 +178,6 @@ class IRCompiler {
    * Converts a type annotation to its string representation.
    */
   static typeToString(typeAnnotation) {
-    // Assume typeAnnotation is either a string or an object with a 'name' property.
     if (typeof typeAnnotation === "object" && typeAnnotation.name) {
       return typeAnnotation.name;
     }
